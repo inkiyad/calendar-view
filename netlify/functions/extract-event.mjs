@@ -96,6 +96,7 @@ export async function extractEventFromPost(post) {
     ],
   });
 
+  console.log('OpenAI raw response:', JSON.stringify(completion.choices?.[0]?.message?.content));
   const raw = completion.choices?.[0]?.message?.content?.trim() ?? '{}';
 
   let extracted;
