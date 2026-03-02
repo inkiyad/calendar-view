@@ -39,17 +39,21 @@ create policy "Public read events"
   on events for select
   using (true);
 
--- Only service role can insert / update events
+-- Only service role can insert / update / delete events
 create policy "Service role insert events"
   on events for insert
-  with check (auth.role() = 'service_role');
+  with check ((auth.jwt() ->> 'role') = 'service_role');
 
 create policy "Service role update events"
   on events for update
-  using (auth.role() = 'service_role');
+  using ((auth.jwt() ->> 'role') = 'service_role');
+
+create policy "Service role delete events"
+  on events for delete
+  using ((auth.jwt() ->> 'role') = 'service_role');
 
 -- Only service role can read / write processing_state
 create policy "Service role all on processing_state"
   on processing_state for all
-  using (auth.role() = 'service_role')
-  with check (auth.role() = 'service_role');
+  using ((auth.jwt() ->> 'role') = 'service_role')
+  with check ((auth.jwt() ->> 'role') = 'service_role');

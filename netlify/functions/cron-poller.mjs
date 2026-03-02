@@ -3,7 +3,8 @@ import { extractEventFromPost } from './extract-event.mjs';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
+  process.env.SUPABASE_SERVICE_KEY,
+  { auth: { persistSession: false, autoRefreshToken: false } }
 );
 
 const INSTAGRAM_HANDLE = process.env.INSTAGRAM_HANDLE;
