@@ -5,19 +5,12 @@ import './App.css';
 
 function App() {
   const [events, setEvents] = useState([]);
-  const [darkMode, setDarkMode] = useState(
-    () => localStorage.getItem('darkMode') === 'true'
-  );
+  const [darkMode, setDarkMode] = useState(false);
 
-  const toggleDark = () => {
-    setDarkMode(prev => {
-      localStorage.setItem('darkMode', String(!prev));
-      return !prev;
-    });
-  };
+  const toggleDark = () => setDarkMode(prev => !prev);
 
   useEffect(() => {
-    fetch('http://localhost:5050/api/calendar')
+    fetch('/.netlify/functions/get-events')
       .then(r => r.json())
       .then(data => setEvents(data.events || []))
       .catch(() => {

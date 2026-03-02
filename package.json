@@ -3,10 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "install:all": "npm install --prefix server && npm install --prefix client",
-    "start:server": "npm start --prefix server",
+    "install:all": "npm install && npm install --prefix client",
     "start:client": "npm start --prefix client",
-    "start": "concurrently \"npm run start:server\" \"npm run start:client\""
+    "start": "npm run start:client"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.30.0",
+    "@supabase/supabase-js": "^2.45.0"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

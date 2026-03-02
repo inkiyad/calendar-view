@@ -1,52 +1,82 @@
 # Calendar View
 
-An embeddable calendar view for organizations, styled to match Squarespace's native calendar feature. Generates HTML embed code that can be placed on any website. Designed to support multiple calendar designs in the future.
+An embeddable, auto-updating calendar for organizations. Features Instagram-powered event extraction via Claude AI, dark mode, featured images, and responsive design.
 
 ## Features
-- Month grid view with today highlighted
-- List view toggle
-- Prev/Next month navigation + "Today" button
-- Color-coded event pills with title and time
-- Click any event to open a detail modal (title, date, time, location, description, category)
-- Responsive — works on desktop and mobile
-- Embed code panel with one-click copy
+- **Auto-sync from Instagram** — hourly cron job extracts events from Instagram posts using Claude AI
+- **Month grid view** — always 7-column grid with featured images, works on all screen sizes
+- **Dark mode toggle** — persisted preference
+- **Event detail modal** — click any tile to see all events for that day
+- **Responsive** — desktop, tablet, and mobile optimized
+- **Embeddable** — one-click copy iframe code
 
 ## Tech Stack
 - **Frontend:** React (create-react-app)
-- **Backend:** Node.js / Express
+- **Backend:** Netlify Functions + Supabase
+- **AI:** Claude Sonnet 4 for event extraction
+- **Data:** Supabase (PostgreSQL + RLS)
 
-## Getting Started
+## Setup
 
-From the root folder, install all dependencies once:
-```
+### 1. Install dependencies
+```bash
 npm run install:all
 ```
 
-Then start both servers together:
-```
-npm start
+### 2. Configure environment variables
+Create a `.env` file in the project root with the following:
+
+```bash
+# Supabase Configuration
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_KEY=your-service-role-key-here
+
+# Anthropic AI Configuration
+ANTHROPIC_API_KEY=sk-ant-your-api-key-here
+
+# Instagram Configuration
+INSTAGRAM_HANDLE=masqueenscenter
+
+# Organization Details (for event extraction prompt)
+ORG_NAME=MAS Queens Center
+ORG_DESCRIPTION=a Muslim community center
+ORG_ADDRESS=46-01 20th Ave, Astoria, NY 11105
+EVENT_TAGS=lecture,youth,sisters,brothers,fundraiser,interfaith,quran,community,free,ticketed
 ```
 
-Or run them separately:
+**Note:** The `.env` file is gitignored and will not be committed to your repository.
+
+### 3. Set up Supabase database
+Run the SQL in `supabase/schema.sql` in your Supabase SQL editor to create:
+- `events` table (with RLS policies)
+- `processing_state` table (for cron watermarks)
+
+### 4. Run locally
+```bash
+netlify dev
 ```
-# Terminal 1
-npm start --prefix server   # http://localhost:5050
+Opens at `http://localhost:8888`
 
-# Terminal 2
-npm start --prefix client   # http://localhost:3000
-```
+## Deployment
 
-## API
-`GET /api/calendar` — returns the organization's events as JSON.
+Push to your Git repo connected to Netlify. Add all environment variables in **Netlify Dashboard → Site Settings → Environment Variables**.
 
-## Embed
-Copy the embed code from the bottom of the calendar page and paste it into any website.
+Netlify will:
+- Build the React app from `client/`
+- Deploy serverless functions from `netlify/functions/`
+- Run `cron-poller` every hour to fetch new Instagram posts
+
+## Functions
+
+- **`get-events`** — returns upcoming events from Supabase
+- **`cron-poller`** — runs every hour, fetches Instagram posts, calls extract-event
+- **`extract-event`** — sends post to Claude, parses JSON, upserts to Supabase
 
 ## Roadmap
-- [ ] Multiple calendar themes / designs
-- [ ] User and organizer theme selection
-- [ ] Event creation and management UI
-- [ ] Authentication for organizers
-- [ ] iCal / Google Calendar sync
+- [ ] Multi-organization support
+- [ ] Manual event creation UI
+- [ ] Calendar theme switcher
+- [ ] iCal / Google Calendar export
+
 
 # calendar-view

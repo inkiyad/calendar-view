@@ -1,0 +1,23 @@
+[build]
+  publish = "client/build"
+  command = "npm run build --prefix client"
+
+[dev]
+  command    = "npm start --prefix client"
+  port       = 8888
+  targetPort = 3000
+  publish    = "client/build"
+  framework  = "#custom"
+
+[functions]
+  directory    = "netlify/functions"
+  node_bundler = "esbuild"
+
+[functions."cron-poller"]
+  schedule = "0 * * * *"
+
+# SPA fallback — all routes serve index.html
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
