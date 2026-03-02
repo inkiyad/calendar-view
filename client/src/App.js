@@ -6,8 +6,24 @@ import './App.css';
 function App() {
   const [events, setEvents] = useState([]);
   const [darkMode, setDarkMode] = useState(false);
+  const [isEmbedMode, setIsEmbedMode] = useState(false);
 
   const toggleDark = () => setDarkMode(prev => !prev);
+
+  // Detect embed mode and theme from URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const embedParam = params.get('embed');
+    const themeParam = params.get('theme');
+    
+    if (embedParam === 'true' || window.location.pathname.includes('/embed')) {
+      setIsEmbedMode(true);
+    }
+    
+    if (themeParam === 'dark') {
+      setDarkMode(true);
+    }
+  }, []);
 
   useEffect(() => {
     fetch('/.netlify/functions/get-events')
@@ -27,6 +43,16 @@ function App() {
       });
   }, []);
 
+  // Embed-only mode: just the calendar
+  if (isEmbedMode) {
+    return (
+      <div className={`app app--embed${darkMode ? ' app--dark' : ''}`}>
+        <CalendarView events={events} darkMode={darkMode} />
+      </div>
+    );
+  }
+
+  // Full page mode: header, nav, calendar, embed code
   return (
     <div className={`app${darkMode ? ' app--dark' : ''}`}>
       <header className="app-header">

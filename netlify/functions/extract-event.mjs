@@ -1,6 +1,36 @@
 import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
 
+/**
+ * Fetches an image from a URL and converts it to base64.
+ * Uses a browser-like User-Agent to avoid blocking.
+ * 
+ * @param {string} url - The image URL to fetch
+ * @returns {Promise<{base64: string, contentType: string}>}
+ */
+async function fetchImageAsBase64(url) {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+    }
+
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    const arrayBuffer = await response.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString('base64');
+
+    return { base64, contentType };
+  } catch (error) {
+    console.error('[fetchImageAsBase64] Error fetching image:', error.message);
+    throw new Error(`Unable to fetch image from ${url}: ${error.message}`);
+  }
+}
+
 // Inlined so esbuild bundling doesn't break file-system reads
 const ORG_NAME = process.env.ORG_NAME || 'your organization';
 const ORG_DESCRIPTION = process.env.ORG_DESCRIPTION || 'a community center';
@@ -33,10 +63,20 @@ export async function extractEventFromPost(post) {
   // Build message content — include image if URL is available
   const content = [];
   if (imageUrl) {
-    content.push({
-      type: 'image_url',
-      image_url: { url: imageUrl },
-    });
+    try {
+      // Fetch Instagram image as base64 (Instagram blocks direct OpenAI access)
+      const { base64, contentType } = await fetchImageAsBase64(imageUrl);
+      content.push({
+        type: 'image_url',
+        image_url: {
+          url: `data:${contentType};base64,${base64}`,
+        },
+      });
+      console.log(`[extract-event] Successfully fetched image as base64 (${contentType})`);
+    } catch (error) {
+      console.warn(`[extract-event] Failed to fetch image, proceeding without it: ${error.message}`);
+      // Continue without image - caption may still be sufficient
+    }
   }
   content.push({
     type: 'text',
@@ -58,7 +98,7 @@ export async function extractEventFromPost(post) {
   try {
     extracted = JSON.parse(raw);
   } catch {
-    console.error('[extract-event] Claude returned non-JSON:', raw);
+    console.error('[extract-event] OpenAI returned non-JSON:', raw);
     return null;
   }
 
