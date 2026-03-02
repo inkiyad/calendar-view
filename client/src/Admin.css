@@ -1,0 +1,430 @@
+/* ============================================================
+   Admin page — event management
+   ============================================================ */
+
+.admin {
+  min-height: 100vh;
+  background: #f6f6f6;
+  color: #111;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  transition: background 0.2s, color 0.2s;
+}
+
+.admin--dark {
+  background: #0a0a0a;
+  color: #e8e8e8;
+}
+
+/* ── Login screen ─────────────────────────────────────────── */
+.admin-login {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: 40px 24px;
+}
+
+.admin-login h2 {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #aaa;
+  margin-bottom: 28px;
+}
+
+.admin-login__form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 340px;
+}
+
+.admin-login__input {
+  padding: 11px 14px;
+  font-size: 0.9rem;
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #111;
+  outline: none;
+  transition: border-color 0.12s;
+  border-radius: 4px;
+}
+.admin-login__input:focus { border-color: #111; }
+
+.admin--dark .admin-login__input {
+  background: #1a1a1a;
+  border-color: #333;
+  color: #e8e8e8;
+}
+.admin--dark .admin-login__input:focus { border-color: #e8e8e8; }
+
+.admin-login__btn {
+  padding: 11px 14px;
+  background: #111;
+  color: #fff;
+  border: none;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-radius: 4px;
+}
+.admin-login__btn:hover { background: #333; }
+
+.admin--dark .admin-login__btn {
+  background: #e8e8e8;
+  color: #0a0a0a;
+}
+.admin--dark .admin-login__btn:hover { background: #ccc; }
+
+.admin-login__error {
+  font-size: 0.8rem;
+  color: #c00;
+  text-align: center;
+}
+
+/* ── Main layout ──────────────────────────────────────────── */
+.admin-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 24px 56px;
+}
+
+.admin-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.admin-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #aaa;
+  margin: 0;
+}
+
+.admin-add-btn {
+  padding: 9px 20px;
+  background: #111;
+  color: #fff;
+  border: none;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-radius: 4px;
+}
+.admin-add-btn:hover { background: #333; }
+
+.admin--dark .admin-add-btn {
+  background: #e8e8e8;
+  color: #0a0a0a;
+}
+.admin--dark .admin-add-btn:hover { background: #ccc; }
+
+.admin-error {
+  color: #c00;
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+}
+
+.admin-table__date,
+.admin-table__time {
+  white-space: nowrap;
+}
+
+/* ── Event table ──────────────────────────────────────────── */
+.admin-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+
+.admin-table th {
+  text-align: left;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #aaa;
+  padding: 8px 12px;
+  border-bottom: 1px solid #e0e0e0;
+  white-space: nowrap;
+}
+.admin--dark .admin-table th {
+  border-bottom-color: #2a2a2a;
+}
+
+.admin-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #efefef;
+  vertical-align: top;
+  color: #111;
+}
+.admin--dark .admin-table td {
+  border-bottom-color: #1e1e1e;
+  color: #ddd;
+}
+
+.admin-table tr:hover td {
+  background: #f9f9f9;
+}
+.admin--dark .admin-table tr:hover td {
+  background: #141414;
+}
+
+.admin-table__actions {
+  display: flex;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.admin-btn-edit,
+.admin-btn-delete {
+  padding: 5px 12px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  transition: background 0.12s;
+  border-radius: 3px;
+}
+
+.admin-btn-edit {
+  background: #f0f0f0;
+  color: #111;
+}
+.admin-btn-edit:hover { background: #ddd; }
+
+.admin-btn-delete {
+  background: #fee;
+  color: #c00;
+}
+.admin-btn-delete:hover { background: #fcc; }
+
+.admin--dark .admin-btn-edit {
+  background: #222;
+  color: #e8e8e8;
+}
+.admin--dark .admin-btn-edit:hover { background: #333; }
+
+.admin--dark .admin-btn-delete {
+  background: #2a1010;
+  color: #f88;
+}
+.admin--dark .admin-btn-delete:hover { background: #3a1818; }
+
+.admin-empty {
+  text-align: center;
+  padding: 40px 0;
+  color: #aaa;
+  font-size: 0.85rem;
+}
+
+/* ── Event form modal ─────────────────────────────────────── */
+.admin-modal__overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: admin-fade 0.15s ease;
+}
+
+@keyframes admin-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.admin-modal {
+  background: #fff;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 64px rgba(0, 0, 0, 0.22);
+  border-radius: 6px;
+  animation: admin-rise 0.18s ease;
+  position: relative;
+}
+.admin-modal--dark {
+  background: #1a1a1a;
+  box-shadow: 0 20px 64px rgba(0, 0, 0, 0.6);
+}
+
+@keyframes admin-rise {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.admin-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px 14px;
+  border-bottom: 1px solid #efefef;
+}
+.admin-modal--dark .admin-modal__header {
+  border-bottom-color: #2a2a2a;
+}
+
+.admin-modal__title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #aaa;
+  margin: 0;
+}
+
+.admin-modal__close {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  color: #888;
+  cursor: pointer;
+  transition: color 0.12s;
+  padding: 2px 6px;
+}
+.admin-modal__close:hover { color: #111; }
+.admin-modal--dark .admin-modal__close { color: #666; }
+.admin-modal--dark .admin-modal__close:hover { color: #fff; }
+
+.admin-form {
+  padding: 20px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.admin-form__row {
+  display: flex;
+  gap: 14px;
+}
+.admin-form__row .admin-form__field { flex: 1; }
+
+.admin-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.admin-form__label {
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #aaa;
+}
+
+.admin-form__input,
+.admin-form__textarea {
+  padding: 9px 12px;
+  font-size: 0.85rem;
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #111;
+  outline: none;
+  transition: border-color 0.12s;
+  border-radius: 4px;
+  font-family: inherit;
+}
+.admin-form__input:focus,
+.admin-form__textarea:focus { border-color: #111; }
+
+.admin-form__textarea {
+  resize: vertical;
+  min-height: 72px;
+}
+
+.admin--dark .admin-form__input,
+.admin--dark .admin-form__textarea {
+  background: #111;
+  border-color: #333;
+  color: #e8e8e8;
+}
+.admin--dark .admin-form__input:focus,
+.admin--dark .admin-form__textarea:focus { border-color: #e8e8e8; }
+
+.admin-form__actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.admin-form__submit {
+  padding: 9px 22px;
+  background: #111;
+  color: #fff;
+  border: none;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-radius: 4px;
+}
+.admin-form__submit:hover { background: #333; }
+.admin-form__submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.admin--dark .admin-form__submit {
+  background: #e8e8e8;
+  color: #0a0a0a;
+}
+.admin--dark .admin-form__submit:hover { background: #ccc; }
+
+.admin-form__cancel {
+  padding: 9px 22px;
+  background: transparent;
+  color: #888;
+  border: 1px solid #ddd;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  border-radius: 4px;
+}
+.admin-form__cancel:hover { border-color: #aaa; color: #444; }
+
+.admin--dark .admin-form__cancel {
+  border-color: #333;
+  color: #666;
+}
+.admin--dark .admin-form__cancel:hover { border-color: #666; color: #aaa; }
+
+.admin-form__error {
+  font-size: 0.8rem;
+  color: #c00;
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 599px) {
+  .admin-inner { padding: 20px 16px 40px; }
+  .admin-form__row { flex-direction: column; gap: 14px; }
+  .admin-modal { border-radius: 0; }
+}

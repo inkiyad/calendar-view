@@ -24,12 +24,9 @@ export default async function handler(req) {
   };
 
   try {
-    const today = new Date().toISOString().split('T')[0];
-
     const { data, error } = await supabase
       .from('events')
       .select('*')
-      .gte('date', today)
       .order('date', { ascending: true });
 
     if (error) throw error;

@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import CalendarView from './CalendarView';
 import EmbedCode from './EmbedCode';
+import Admin from './Admin';
 import './App.css';
 
 function App() {
   const [events, setEvents] = useState([]);
   const [darkMode, setDarkMode] = useState(false);
+  const [page, setPage] = useState('calendar'); // 'calendar' | 'admin'
 
   const toggleDark = () => setDarkMode(prev => !prev);
 
@@ -33,27 +35,42 @@ function App() {
         <div className="app-header-inner">
           <span className="app-org-name">My Organization</span>
           <nav className="app-nav">
-            <a href="#calendar">Calendar</a>
+            <button
+              className={`app-nav-btn${page === 'calendar' ? ' app-nav-btn--active' : ''}`}
+              onClick={() => setPage('calendar')}
+            >Calendar</button>
+            <button
+              className={`app-nav-btn${page === 'admin' ? ' app-nav-btn--active' : ''}`}
+              onClick={() => setPage('admin')}
+            >Admin</button>
             <a href="#about">About</a>
             <a href="#contact">Contact</a>
           </nav>
           <button className="app-dark-toggle" onClick={toggleDark} title="Toggle dark mode">
-            {darkMode ? '☀️' : '🌙'}
+            {darkMode ? '☀️ Light' : '🌙 Dark'}
           </button>
         </div>
       </header>
 
-      <div className="app-section-title">
-        <h1>Events Calendar</h1>
-      </div>
+      {page === 'calendar' && (
+        <>
+          <div className="app-section-title">
+            <h1>Events Calendar</h1>
+          </div>
+          <main className="app-main" id="calendar">
+            <CalendarView events={events} darkMode={darkMode} />
+          </main>
+          <section className="app-embed-section">
+            <EmbedCode />
+          </section>
+        </>
+      )}
 
-      <main className="app-main" id="calendar">
-        <CalendarView events={events} darkMode={darkMode} />
-      </main>
-
-      <section className="app-embed-section">
-        <EmbedCode />
-      </section>
+      {page === 'admin' && (
+        <main className="app-main app-main--full">
+          <Admin darkMode={darkMode} />
+        </main>
+      )}
     </div>
   );
 }
