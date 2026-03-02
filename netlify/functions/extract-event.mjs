@@ -36,7 +36,9 @@ Only extract events with a specific date.
 Set is_event: false for weather advisories, general announcements, or prayer schedules.`;
 
 const openai   = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
 
 // ─── Shared OpenAI call ───────────────────────────────────────────────────────
 async function callOpenAI(imageDataUrl, captionText) {
