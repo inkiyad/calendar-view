@@ -17,6 +17,47 @@ const supabase = createClient(
 );
 
 /**
+ * Fetch an image from a URL and return it as a base64 data URI.
+ * This is required for Instagram CDN URLs that OpenAI cannot fetch directly.
+ *
+ * @param {string} url
+ * @returns {Promise<string|null>} A base64 data URI string, or null on failure.
+ */
+async function fetchImageAsBase64(url) {
+  const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+      },
+    });
+    if (!res.ok) throw new Error(`Image fetch failed: ${res.status}`);
+
+    const contentType = res.headers.get('content-type') || 'image/jpeg';
+    if (!contentType.startsWith('image/')) {
+      throw new Error(`Unexpected content-type: ${contentType}`);
+    }
+
+    const contentLength = res.headers.get('content-length');
+    if (contentLength && parseInt(contentLength, 10) > MAX_IMAGE_BYTES) {
+      throw new Error(`Image too large: ${contentLength} bytes`);
+    }
+
+    const buffer = await res.arrayBuffer();
+    if (buffer.byteLength > MAX_IMAGE_BYTES) {
+      throw new Error(`Image too large after download: ${buffer.byteLength} bytes`);
+    }
+
+    const base64 = Buffer.from(buffer).toString('base64');
+    return `data:${contentType};base64,${base64}`;
+  } catch (err) {
+    console.warn('[extract-event] Could not fetch image as base64:', err.message);
+    return null;
+  }
+}
+
+/**
  * Core extraction logic — called by cron-poller and the manual POST handler.
  *
  * @param {object} post
@@ -30,13 +71,16 @@ const supabase = createClient(
 export async function extractEventFromPost(post) {
   const { instagramPostId, instagramShortcode, instagramPostUrl, imageUrl, caption } = post;
 
-  // Build message content — include image if URL is available
+  // Build message content — fetch image as base64 so OpenAI can access Instagram CDN URLs
   const content = [];
   if (imageUrl) {
-    content.push({
-      type: 'image_url',
-      image_url: { url: imageUrl },
-    });
+    const base64DataUri = await fetchImageAsBase64(imageUrl);
+    if (base64DataUri) {
+      content.push({
+        type: 'image_url',
+        image_url: { url: base64DataUri },
+      });
+    }
   }
   content.push({
     type: 'text',
@@ -58,7 +102,7 @@ export async function extractEventFromPost(post) {
   try {
     extracted = JSON.parse(raw);
   } catch {
-    console.error('[extract-event] Claude returned non-JSON:', raw);
+    console.error('[extract-event] OpenAI returned non-JSON:', raw);
     return null;
   }
 
