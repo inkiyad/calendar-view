@@ -4,30 +4,83 @@ import { createClient } from '@supabase/supabase-js';
 // ─── Config ───────────────────────────────────────────────────────────────────
 const ORG_NAME        = process.env.ORG_NAME        || 'your organization';
 const ORG_DESCRIPTION = process.env.ORG_DESCRIPTION || 'a community center';
-const ORG_ADDRESS     = process.env.ORG_ADDRESS     || '';
-const EVENT_TAGS      = process.env.EVENT_TAGS      || 'lecture,youth,sisters,brothers,fundraiser,interfaith,community,free,ticketed';
+const ORG_ADDRESS = process.env.ORG_ADDRESS || '';
+const EVENT_TAGS = process.env.EVENT_TAGS || 'lecture,youth,sisters,brothers,fundraiser,interfaith,community,free,ticketed';
 
-const SYSTEM_PROMPT = `You are an event data extractor for ${ORG_NAME}, ${ORG_DESCRIPTION}${ORG_ADDRESS ? ' at ' + ORG_ADDRESS : ''}.
+const SYSTEM_PROMPT = `You are an event data extractor for ${ORG_NAME}, ${ORG_DESCRIPTION}${ORG_ADDRESS ? ' at ' + ORG_ADDRESS : ''}. Analyze the Instagram post image and caption. Return ONLY valid JSON — no markdown, no explanation. Schema: { "is_event": bool, "title": string, "date": "YYYY-MM-DD", "time": "H:MM AM/PM", "end_time": "H:MM AM/PM or null", "description": string (1-3 sentences), "location": string, "image_url": string, "registration_link": string or null, "tags": array from [${EVENT_TAGS}] }. Only extract events with a specific date. Set is_event: false for weather advisories, general announcements, or prayer schedules.`.trim();
 
-You will receive a screenshot of an Instagram post which may be from a phone or desktop. Read both the flyer image AND any caption text visible.
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-Return ONLY valid JSON with this exact schema:
-{
-  "is_event": bool,
-  "title": string,
-  "date": "YYYY-MM-DD",
-  "time": "H:MM AM/PM",
-  "end_time": "H:MM AM/PM or null",
-  "description": "string (1-3 sentences)",
-  "location": string,
-  "image_url": "string (use empty string)",
-  "registration_link": "string or null",
-  "tags": ["array from [${EVENT_TAGS}]"],
-  "crop": {
-    "x": 0,
-    "y": 0,
-    "width": 100,
-    "height": 65
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
+
+/**
+ * Fetch an image from a URL and return it as a base64 data URI.
+ * This is required for Instagram CDN URLs that OpenAI cannot fetch directly.
+ *
+ * @param {string} url
+ * @returns {Promise<string|null>} A base64 data URI string, or null on failure.
+ */
+async function fetchImageAsBase64(url) {
+  const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+      },
+    });
+    if (!res.ok) throw new Error(`Image fetch failed: ${res.status}`);
+
+    const contentType = res.headers.get('content-type') || 'image/jpeg';
+    if (!contentType.startsWith('image/')) {
+      throw new Error(`Unexpected content-type: ${contentType}`);
+    }
+
+    const contentLength = res.headers.get('content-length');
+    if (contentLength && parseInt(contentLength, 10) > MAX_IMAGE_BYTES) {
+      throw new Error(`Image too large: ${contentLength} bytes`);
+    }
+
+    const buffer = await res.arrayBuffer();
+    if (buffer.byteLength > MAX_IMAGE_BYTES) {
+      throw new Error(`Image too large after download: ${buffer.byteLength} bytes`);
+    }
+
+    const base64 = Buffer.from(buffer).toString('base64');
+    return `data:${contentType};base64,${base64}`;
+  } catch (err) {
+    console.warn('[extract-event] Could not fetch image as base64:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Core extraction logic — called by cron-poller and the manual POST handler.
+ *
+ * @param {object} post
+ * @param {string} post.instagramPostId
+ * @param {string} post.instagramShortcode
+ * @param {string} post.instagramPostUrl
+ * @param {string} post.imageUrl
+ * @param {string} post.caption
+ * @returns {Promise<object|null>} The upserted event row, or null if not an event.
+ */
+export async function extractEventFromPost(post) {
+  const { instagramPostId, instagramShortcode, instagramPostUrl, imageUrl, caption } = post;
+
+  // Build message content — fetch image as base64 so OpenAI can access Instagram CDN URLs
+  const content = [];
+  if (imageUrl) {
+    const base64DataUri = await fetchImageAsBase64(imageUrl);
+    if (base64DataUri) {
+      content.push({
+        type: 'image_url',
+        image_url: { url: base64DataUri },
+      });
+    }
   }
 }
 
@@ -64,62 +117,10 @@ async function callOpenAI(imageDataUrl, captionText) {
 // ─── Fetch image from URL (used by cron-poller) ───────────────────────────────
 async function fetchImageAsBase64(url) {
   try {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
-    }
-
-    const contentType = response.headers.get('content-type') || 'image/jpeg';
-    const arrayBuffer = await response.arrayBuffer();
-    const base64 = Buffer.from(arrayBuffer).toString('base64');
-
-    return { base64, contentType };
-  } catch (error) {
-    console.error('[fetchImageAsBase64] Error fetching image:', error.message);
-    throw new Error(`Unable to fetch image from ${url}: ${error.message}`);
-  }
-}
-
-
-
-// ─── Used by cron-poller: fetches image from URL, saves to Supabase ───────────
-export async function extractEventFromPost(post) {
-  const { instagramPostId, instagramShortcode, instagramPostUrl, imageUrl, caption } = post;
-
-  const captionText = `Instagram caption:\n\n${caption}\n\nPost URL: ${instagramPostUrl}`;
-
-  let extracted;
-  if (imageUrl) {
-    try {
-      const { base64, contentType } = await fetchImageAsBase64(imageUrl);
-      extracted = await callOpenAI(`data:${contentType};base64,${base64}`, captionText);
-    } catch (err) {
-      console.warn('[extract-event][cron] Image fetch failed, using text only:', err.message);
-      const completion = await openai.chat.completions.create({
-        model: 'gpt-5-mini',
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user',   content: captionText },
-        ],
-      });
-      extracted = JSON.parse(completion.choices?.[0]?.message?.content?.trim() ?? '{}');
-    }
-  } else {
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-5-mini',
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user',   content: captionText },
-      ],
-    });
-    extracted = JSON.parse(completion.choices?.[0]?.message?.content?.trim() ?? '{}');
+    extracted = JSON.parse(raw);
+  } catch {
+    console.error('[extract-event] OpenAI returned non-JSON:', raw);
+    return null;
   }
 
   if (!extracted.is_event) {
