@@ -4,6 +4,7 @@ An embeddable, auto-updating calendar for organizations. Features Instagram-powe
 
 ## Features
 - **Auto-sync from Instagram** — hourly cron job extracts events from Instagram posts using GPT-4o
+- **Admin interface** — password-protected page for manual event submission and deletion
 - **Month grid view** — always 7-column grid with featured images, works on all screen sizes
 - **Dark mode toggle** — persisted preference
 - **Event detail modal** — click any tile to see all events for that day
@@ -42,6 +43,10 @@ ORG_NAME=MAS Queens Center
 ORG_DESCRIPTION=a Muslim community center
 ORG_ADDRESS=46-01 20th Ave, Astoria, NY 11105
 EVENT_TAGS=lecture,youth,sisters,brothers,fundraiser,interfaith,quran,community,free,ticketed
+
+# Admin Configuration
+ADMIN_PASSWORD=your-secure-password-here
+REACT_APP_ADMIN_PASSWORD=your-secure-password-here
 ```
 
 **Note:** The `.env` file is gitignored and will not be committed to your repository.
@@ -68,13 +73,26 @@ Netlify will:
 
 ## Functions
 
-- **`get-events`** — returns upcoming events from Supabase
+- **`get-events`** — returns upcoming events from Supabase (supports `?all=true` for admin)
 - **`cron-poller`** — runs every hour, fetches Instagram posts, calls extract-event
 - **`extract-event`** — sends post to GPT-4o, parses JSON, upserts to Supabase
+- **`delete-event`** — password-protected endpoint for deleting events
+
+## Admin Interface
+
+Access the admin page at `/admin` and log in with your configured password.
+
+**Features:**
+- **Manual event submission** — submit Instagram posts manually for immediate processing
+- **Event management** — view all events (including past ones) with thumbnails
+- **Delete events** — remove incorrect or duplicate events
+- **Dark theme** — matches MAS Queens editorial design
+
+To set up the admin page, ensure both `ADMIN_PASSWORD` and `REACT_APP_ADMIN_PASSWORD` are configured in your `.env` file.
 
 ## Roadmap
 - [ ] Multi-organization support
-- [ ] Manual event creation UI
+- [x] Manual event creation UI (via admin interface)
 - [ ] Calendar theme switcher
 - [ ] iCal / Google Calendar export
 

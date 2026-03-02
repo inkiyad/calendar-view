@@ -57,6 +57,10 @@ body {
   transition: color 0.15s;
 }
 .app-nav a:hover { color: #111; }
+.app-nav-admin {
+  color: #111 !important;
+  font-weight: 700 !important;
+}
 
 /* ── Page section title ──────────────────────────────────────── */
 .app-section-title {
@@ -179,13 +183,17 @@ body {
 .app-dark-toggle {
   background: none;
   border: none;
-  font-size: 1rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   cursor: pointer;
-  padding: 5px 9px;
+  padding: 5px 10px;
   line-height: 1;
   color: #111;
+  border-radius: 5px;
   transition: background 0.15s;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 .app-dark-toggle:hover { background: #f4f4f4; }
 
@@ -206,6 +214,7 @@ body {
 
 .app--dark .app-nav a { color: #555; }
 .app--dark .app-nav a:hover { color: #e8e8e8; }
+.app--dark .app-nav-admin { color: #e8e8e8 !important; }
 
 .app--dark .app-dark-toggle {
   color: #e8e8e8;
