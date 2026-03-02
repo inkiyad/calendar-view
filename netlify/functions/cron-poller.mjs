@@ -58,11 +58,17 @@ export default async function handler(req) {
     return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
 
+  // Filter to only posts from the last 30 days
+  const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+  const recentPosts = posts.filter(p => p.timestamp * 1000 >= thirtyDaysAgo);
+  
+  console.log(`[cron-poller] Found ${posts.length} total posts, ${recentPosts.length} from last 30 days`);
+
   // Filter to only posts newer than the last processed one
-  let newPosts = posts;
+  let newPosts = recentPosts;
   if (lastPostId) {
-    const lastIdx = posts.findIndex((p) => p.id === lastPostId);
-    newPosts = lastIdx === -1 ? posts : posts.slice(0, lastIdx);
+    const lastIdx = recentPosts.findIndex((p) => p.id === lastPostId);
+    newPosts = lastIdx === -1 ? recentPosts : recentPosts.slice(0, lastIdx);
   }
 
   if (newPosts.length === 0) {

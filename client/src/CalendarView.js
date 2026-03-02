@@ -22,6 +22,7 @@ function CalendarView({ events = [], darkMode = false }) {
     new Date(today.getFullYear(), today.getMonth(), 1)
   );
   const [selectedDay, setSelectedDay] = useState(null); // { date, events[] }
+  const [hoveredDay,  setHoveredDay]  = useState(null); // { events, rect }
 
   const year  = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -94,7 +95,7 @@ function CalendarView({ events = [], darkMode = false }) {
       <div className="cal-grid">
         {cells.map((cell, idx) => {
           const cellEvents = getEvents(cell);
-          const featuredImg = cellEvents.find(e => e.image)?.image || null;
+          const featuredImg = cellEvents.find(e => e.image_url)?.image_url || null;
           const hasEvents   = cell.current && cellEvents.length > 0;
 
           return (
@@ -108,6 +109,11 @@ function CalendarView({ events = [], darkMode = false }) {
                 hasEvents     ? 'cal-cell--has-events': '',
               ].filter(Boolean).join(' ')}
               onClick={() => hasEvents && setSelectedDay({ date: makeDateStr(cell.day), events: cellEvents })}
+              onMouseEnter={(e) => {
+                if (!hasEvents) return;
+                setHoveredDay({ events: cellEvents, rect: e.currentTarget.getBoundingClientRect() });
+              }}
+              onMouseLeave={() => setHoveredDay(null)}
               role={hasEvents ? 'button' : undefined}
               tabIndex={hasEvents ? 0 : undefined}
               onKeyDown={hasEvents ? (e) => e.key === 'Enter' && setSelectedDay({ date: makeDateStr(cell.day), events: cellEvents }) : undefined}
@@ -150,6 +156,40 @@ function CalendarView({ events = [], darkMode = false }) {
         })}
       </div>
 
+      {/* ── Day hover card ──────────────────────────────────*/}
+      {hoveredDay && (() => {
+        const { rect, events } = hoveredDay;
+        const CARD_H  = 32 + events.length * 52;
+        const showAbove = rect.bottom + CARD_H + 8 > window.innerHeight;
+        const leftPos   = Math.max(8, Math.min(rect.left, window.innerWidth - 216));
+        return (
+          <div
+            className={`cal-hover-card${darkMode ? ' cal-hover-card--dark' : ''}`}
+            style={{
+              top:      showAbove ? rect.top - CARD_H - 8 : rect.bottom + 6,
+              left:     leftPos,
+              minWidth: Math.max(rect.width, 200),
+            }}
+          >
+            {events.map((ev, i) => (
+              <div key={i} className="cal-hover-card__event">
+                {ev.image_url && (
+                  <div className="cal-hover-card__img" style={{ backgroundImage: `url(${ev.image_url})` }} />
+                )}
+                <div className="cal-hover-card__info">
+                  <span className="cal-hover-card__title">{ev.title}</span>
+                  {(ev.time || ev.location) && (
+                    <span className="cal-hover-card__meta">
+                      {ev.time}{ev.time && ev.location ? ' · ' : ''}{ev.location}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
       {/* ── Day detail modal ──────────────────────────────────*/}
       {selectedDay && (
         <div
@@ -178,10 +218,10 @@ function CalendarView({ events = [], darkMode = false }) {
             <div className="cal-modal__events">
               {selectedDay.events.map((ev, i) => (
                 <div key={i} className="cal-modal__event">
-                  {ev.image && (
+                  {ev.image_url && (
                     <div
                       className="cal-modal__event-img"
-                      style={{ backgroundImage: `url(${ev.image})` }}
+                      style={{ backgroundImage: `url(${ev.image_url})` }}
                     />
                   )}
                   <div className="cal-modal__event-body">

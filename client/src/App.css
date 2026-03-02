@@ -57,6 +57,10 @@ body {
   transition: color 0.15s;
 }
 .app-nav a:hover { color: #111; }
+.app-nav-admin {
+  color: #111 !important;
+  font-weight: 700 !important;
+}
 
 /* ── Page section title ──────────────────────────────────────── */
 .app-section-title {
@@ -110,6 +114,31 @@ body {
   margin-bottom: 14px;
 }
 
+/* ── Embed options ───────────────────────────────────────────── */
+.embed-options {
+  margin-bottom: 14px;
+  display: flex;
+  gap: 16px;
+}
+
+.embed-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: #555;
+  cursor: pointer;
+  user-select: none;
+}
+
+.embed-option input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.embed-option:hover {
+  color: #111;
+}
+
 .embed-code-box { position: relative; }
 
 .embed-textarea {
@@ -120,7 +149,7 @@ body {
   font-size: 0.78rem;
   color: #333;
   resize: none;
-  height: 60px;
+  height: 140px;
   outline: none;
   border-radius: 0;
 }
@@ -154,13 +183,17 @@ body {
 .app-dark-toggle {
   background: none;
   border: none;
-  font-size: 1rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   cursor: pointer;
-  padding: 5px 9px;
+  padding: 5px 10px;
   line-height: 1;
   color: #111;
+  border-radius: 5px;
   transition: background 0.15s;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 .app-dark-toggle:hover { background: #f4f4f4; }
 
@@ -181,6 +214,7 @@ body {
 
 .app--dark .app-nav a { color: #555; }
 .app--dark .app-nav a:hover { color: #e8e8e8; }
+.app--dark .app-nav-admin { color: #e8e8e8 !important; }
 
 .app--dark .app-dark-toggle {
   color: #e8e8e8;
@@ -208,3 +242,34 @@ body {
 }
 .app--dark .embed-copy-btn:hover { background: #ccc; }
 
+.app--dark .embed-option {
+  color: #777;
+}
+
+.app--dark .embed-option:hover {
+  color: #e8e8e8;
+}
+
+/* ── Embed mode (iframe view) ───────────────────────────────── */
+.app--embed {
+  min-height: 100vh;
+  padding: 16px;
+}
+
+.app--embed .cal {
+  max-width: 100%;
+  margin: 0;
+}
+
+/* Responsive embed mode */
+@media (max-width: 768px) {
+  .app--embed {
+    padding: 8px;
+  }
+}
+
+@media (max-width: 599px) {
+  .app--embed {
+    padding: 4px;
+  }
+}

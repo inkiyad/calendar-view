@@ -1,13 +1,31 @@
 import React, { useEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import CalendarView from './CalendarView';
 import EmbedCode from './EmbedCode';
+import Admin from './Admin';
 import './App.css';
 
-function App() {
+function CalendarApp() {
   const [events, setEvents] = useState([]);
   const [darkMode, setDarkMode] = useState(false);
+  const [isEmbedMode, setIsEmbedMode] = useState(false);
 
   const toggleDark = () => setDarkMode(prev => !prev);
+
+  // Detect embed mode and theme from URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const embedParam = params.get('embed');
+    const themeParam = params.get('theme');
+    
+    if (embedParam === 'true' || window.location.pathname.includes('/embed')) {
+      setIsEmbedMode(true);
+    }
+    
+    if (themeParam === 'dark') {
+      setDarkMode(true);
+    }
+  }, []);
 
   useEffect(() => {
     fetch('/.netlify/functions/get-events')
@@ -27,6 +45,16 @@ function App() {
       });
   }, []);
 
+  // Embed-only mode: just the calendar
+  if (isEmbedMode) {
+    return (
+      <div className={`app app--embed${darkMode ? ' app--dark' : ''}`}>
+        <CalendarView events={events} darkMode={darkMode} />
+      </div>
+    );
+  }
+
+  // Full page mode: header, nav, calendar, embed code
   return (
     <div className={`app${darkMode ? ' app--dark' : ''}`}>
       <header className="app-header">
@@ -36,9 +64,10 @@ function App() {
             <a href="#calendar">Calendar</a>
             <a href="#about">About</a>
             <a href="#contact">Contact</a>
+            <a href="/admin" className="app-nav-admin">Admin</a>
           </nav>
           <button className="app-dark-toggle" onClick={toggleDark} title="Toggle dark mode">
-            {darkMode ? '☀️' : '🌙'}
+            {darkMode ? '☀️ Light' : '🌙 Dark'}
           </button>
         </div>
       </header>
@@ -58,4 +87,13 @@ function App() {
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/admin" element={<Admin />} />
+        <Route path="*" element={<CalendarApp />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
