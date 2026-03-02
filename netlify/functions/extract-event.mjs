@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
 
 // Inlined so esbuild bundling doesn't break file-system reads
@@ -9,7 +9,7 @@ const EVENT_TAGS = process.env.EVENT_TAGS || 'lecture,youth,sisters,brothers,fun
 
 const SYSTEM_PROMPT = `You are an event data extractor for ${ORG_NAME}, ${ORG_DESCRIPTION}${ORG_ADDRESS ? ' at ' + ORG_ADDRESS : ''}. Analyze the Instagram post image and caption. Return ONLY valid JSON — no markdown, no explanation. Schema: { "is_event": bool, "title": string, "date": "YYYY-MM-DD", "time": "H:MM AM/PM", "end_time": "H:MM AM/PM or null", "description": string (1-3 sentences), "location": string, "image_url": string, "registration_link": string or null, "tags": array from [${EVENT_TAGS}] }. Only extract events with a specific date. Set is_event: false for weather advisories, general announcements, or prayer schedules.`.trim();
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -34,8 +34,8 @@ export async function extractEventFromPost(post) {
   const content = [];
   if (imageUrl) {
     content.push({
-      type: 'image',
-      source: { type: 'url', url: imageUrl },
+      type: 'image_url',
+      image_url: { url: imageUrl },
     });
   }
   content.push({
@@ -43,14 +43,16 @@ export async function extractEventFromPost(post) {
     text: `Instagram caption:\n\n${caption}\n\nPost URL: ${instagramPostUrl}`,
   });
 
-  const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o',
     max_tokens: 1024,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content }],
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content },
+    ],
   });
 
-  const raw = message.content?.[0]?.text?.trim() ?? '{}';
+  const raw = completion.choices?.[0]?.message?.content?.trim() ?? '{}';
 
   let extracted;
   try {

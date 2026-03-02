@@ -1,9 +1,9 @@
 # Calendar View
 
-An embeddable, auto-updating calendar for organizations. Features Instagram-powered event extraction via Claude AI, dark mode, featured images, and responsive design.
+An embeddable, auto-updating calendar for organizations. Features Instagram-powered event extraction via GPT-4o, dark mode, featured images, and responsive design.
 
 ## Features
-- **Auto-sync from Instagram** — hourly cron job extracts events from Instagram posts using Claude AI
+- **Auto-sync from Instagram** — hourly cron job extracts events from Instagram posts using GPT-4o
 - **Month grid view** — always 7-column grid with featured images, works on all screen sizes
 - **Dark mode toggle** — persisted preference
 - **Event detail modal** — click any tile to see all events for that day
@@ -13,7 +13,7 @@ An embeddable, auto-updating calendar for organizations. Features Instagram-powe
 ## Tech Stack
 - **Frontend:** React (create-react-app)
 - **Backend:** Netlify Functions + Supabase
-- **AI:** Claude Sonnet 4 for event extraction
+- **AI:** OpenAI GPT-4o for event extraction
 - **Data:** Supabase (PostgreSQL + RLS)
 
 ## Setup
@@ -31,8 +31,8 @@ Create a `.env` file in the project root with the following:
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_KEY=your-service-role-key-here
 
-# Anthropic AI Configuration
-ANTHROPIC_API_KEY=sk-ant-your-api-key-here
+# OpenAI Configuration
+OPENAI_API_KEY=sk-your-openai-api-key-here
 
 # Instagram Configuration
 INSTAGRAM_HANDLE=masqueenscenter
@@ -70,7 +70,7 @@ Netlify will:
 
 - **`get-events`** — returns upcoming events from Supabase
 - **`cron-poller`** — runs every hour, fetches Instagram posts, calls extract-event
-- **`extract-event`** — sends post to Claude, parses JSON, upserts to Supabase
+- **`extract-event`** — sends post to GPT-4o, parses JSON, upserts to Supabase
 
 ## Roadmap
 - [ ] Multi-organization support
