@@ -2,6 +2,9 @@
   publish = "client/build"
   command = "cd client && npm install && npm run build"
 
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "ORG_NAME,ORG_DESCRIPTION,ORG_ADDRESS,EVENT_TAGS,INSTAGRAM_HANDLE,REVIEW_ID"
+
 [dev]
   command    = "npm start --prefix client"
   port       = 8888
