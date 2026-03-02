@@ -1,0 +1,210 @@
+/* ============================================================
+   App shell — clean editorial layout matching MAS Queens style
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  background: #ffffff;
+  color: #111;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Site header ─────────────────────────────────────────────── */
+.app-header {
+  background: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+}
+
+.app-header-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.app-org-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #111;
+}
+
+.app-nav {
+  display: flex;
+  gap: 28px;
+}
+
+.app-nav a {
+  text-decoration: none;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #777;
+  transition: color 0.15s;
+}
+.app-nav a:hover { color: #111; }
+
+/* ── Page section title ──────────────────────────────────────── */
+.app-section-title {
+  max-width: 960px;
+  margin: 36px auto 16px;
+  padding: 0 24px;
+}
+
+.app-section-title h1 {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #aaa;
+}
+
+/* ── Calendar wrapper ────────────────────────────────────────── */
+.app-main {
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 24px 40px;
+  flex: 1;
+}
+
+/* ── Embed section ───────────────────────────────────────────── */
+.app-embed-section {
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto 56px;
+  padding: 0 24px;
+}
+
+.embed-panel {
+  background: #fff;
+  padding: 24px;
+}
+
+.embed-panel h2 {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #aaa;
+  margin-bottom: 4px;
+}
+
+.embed-subtitle {
+  font-size: 0.82rem;
+  color: #999;
+  margin-bottom: 14px;
+}
+
+.embed-code-box { position: relative; }
+
+.embed-textarea {
+  width: 100%;
+  background: #f8f8f8;
+  padding: 12px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.78rem;
+  color: #333;
+  resize: none;
+  height: 60px;
+  outline: none;
+  border-radius: 0;
+}
+
+.embed-copy-btn {
+  margin-top: 10px;
+  background: #111;
+  color: #fff;
+  border: none;
+  padding: 9px 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.embed-copy-btn:hover { background: #333; }
+.embed-copy-btn.copied { background: #444; }
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 599px) {
+  .app-header-inner { padding: 0 16px; }
+  .app-main         { padding: 0 0 32px; }
+  .app-embed-section { padding: 0 16px; }
+  .app-section-title { padding: 0 16px; margin-top: 20px; }
+  .app-nav { gap: 16px; }
+}
+
+/* ── Dark mode toggle button ────────────────────────────────── */
+.app-dark-toggle {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 5px 9px;
+  line-height: 1;
+  color: #111;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.app-dark-toggle:hover { background: #f4f4f4; }
+
+/* ── Dark mode: app shell ───────────────────────────────────── */
+.app--dark {
+  background: #0a0a0a;
+  color: #e8e8e8;
+}
+
+.app--dark body,
+.app--dark { color: #e8e8e8; }
+
+.app--dark .app-header {
+  background: #0f0f0f;
+}
+
+.app--dark .app-org-name { color: #e8e8e8; }
+
+.app--dark .app-nav a { color: #555; }
+.app--dark .app-nav a:hover { color: #e8e8e8; }
+
+.app--dark .app-dark-toggle {
+  color: #e8e8e8;
+}
+.app--dark .app-dark-toggle:hover { background: #1c1c1c; }
+
+.app--dark .app-section-title h1 { color: #444; }
+
+.app--dark .embed-panel {
+  background: #0f0f0f;
+}
+
+.app--dark .embed-panel h2 { color: #444; }
+
+.app--dark .embed-subtitle { color: #555; }
+
+.app--dark .embed-textarea {
+  background: #1a1a1a;
+  color: #aaa;
+}
+
+.app--dark .embed-copy-btn {
+  background: #e8e8e8;
+  color: #0a0a0a;
+}
+.app--dark .embed-copy-btn:hover { background: #ccc; }
+

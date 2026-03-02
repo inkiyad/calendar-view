@@ -1,0 +1,26 @@
+[build]
+  publish = "client/build"
+  command = "cd client && npm install && npm run build"
+
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "ORG_NAME,ORG_DESCRIPTION,ORG_ADDRESS,EVENT_TAGS,INSTAGRAM_HANDLE,REVIEW_ID"
+
+[dev]
+  command    = "npm start --prefix client"
+  port       = 8888
+  targetPort = 3000
+  publish    = "client/build"
+  framework  = "#custom"
+
+[functions]
+  directory    = "netlify/functions"
+  node_bundler = "esbuild"
+
+[functions."cron-poller"]
+  schedule = "0 * * * *"
+
+# SPA fallback — all routes serve index.html
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
