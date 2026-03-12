@@ -56,6 +56,7 @@ async function callOpenAI(imageDataUrl, captionText) {
     ],
   });
 
+  console.log('OpenAI raw response:', JSON.stringify(completion.choices?.[0]?.message?.content));
   const raw = completion.choices?.[0]?.message?.content?.trim() ?? '{}';
   console.log('[extract-event] OpenAI raw response:', raw);
 
