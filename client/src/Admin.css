@@ -22,6 +22,21 @@
   line-height: 1.55;
 }
 
+@media (prefers-color-scheme: dark) {
+  .adm {
+    --bg:       #1a1a18;
+    --card:     #1f1f1c;
+    --border:   #2a2a26;
+    --accent:   #e8e8e8;
+    --accent-dim: #bdbdbd;
+    --text:     #e8e8e8;
+    --text-dim: #9a9a9a;
+    --red:      #e05555;
+    --green:    #4caf79;
+    --amber:    #c9a96e;
+  }
+}
+
 /* ── Header ─────────────────────────────────────────────────────────────────── */
 .adm-header {
   position: sticky;

@@ -199,7 +199,7 @@ body {
 
 /* ── Dark mode: app shell ───────────────────────────────────── */
 .app--dark {
-  background: #0a0a0a;
+  background: #1a1a18;
   color: #e8e8e8;
 }
 
@@ -207,7 +207,7 @@ body {
 .app--dark { color: #e8e8e8; }
 
 .app--dark .app-header {
-  background: #0f0f0f;
+  background: #1a1a18;
 }
 
 .app--dark .app-org-name { color: #e8e8e8; }
@@ -224,7 +224,7 @@ body {
 .app--dark .app-section-title h1 { color: #444; }
 
 .app--dark .embed-panel {
-  background: #0f0f0f;
+  background: #1a1a18;
 }
 
 .app--dark .embed-panel h2 { color: #444; }
@@ -232,15 +232,15 @@ body {
 .app--dark .embed-subtitle { color: #555; }
 
 .app--dark .embed-textarea {
-  background: #1a1a1a;
+  background: #2a2a26;
   color: #aaa;
 }
 
 .app--dark .embed-copy-btn {
-  background: #e8e8e8;
-  color: #0a0a0a;
+  background: #2a2a26;
+  color: #e8e8e8;
 }
-.app--dark .embed-copy-btn:hover { background: #ccc; }
+.app--dark .embed-copy-btn:hover { background: #343431; }
 
 .app--dark .embed-option {
   color: #777;
