@@ -5,7 +5,7 @@
 
 body {
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  background: #ffffff;
+  background: #FDF8F4;
   color: #111;
   -webkit-font-smoothing: antialiased;
 }
@@ -18,7 +18,7 @@ body {
 
 /* ── Site header ─────────────────────────────────────────────── */
 .app-header {
-  background: #fff;
+  background: #FDF8F4;
   position: sticky;
   top: 0;
   z-index: 200;
@@ -95,7 +95,7 @@ body {
 }
 
 .embed-panel {
-  background: #fff;
+  background: #FDF8F4;
   padding: 24px;
 }
 
@@ -199,7 +199,7 @@ body {
 
 /* ── Dark mode: app shell ───────────────────────────────────── */
 .app--dark {
-  background: #1a1a18;
+  background: #1f1f1f;
   color: #e8e8e8;
 }
 
@@ -207,7 +207,7 @@ body {
 .app--dark { color: #e8e8e8; }
 
 .app--dark .app-header {
-  background: #1a1a18;
+  background: #1f1f1f;
 }
 
 .app--dark .app-org-name { color: #e8e8e8; }
@@ -224,7 +224,7 @@ body {
 .app--dark .app-section-title h1 { color: #444; }
 
 .app--dark .embed-panel {
-  background: #1a1a18;
+  background: #1f1f1f;
 }
 
 .app--dark .embed-panel h2 { color: #444; }
