@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import './Admin.css';
 
+// ─── Precompiled regex for ISO date validation ─────────────────────────────────
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
 // ─── Canvas crop helper ────────────────────────────────────────────────────────
 const cropImage = (base64, crop) =>
   new Promise((resolve) => {
@@ -142,7 +145,7 @@ export default function Admin() {
     const keys = new Set();
     let hasUndated = false;
     events.forEach((ev) => {
-      if (ev.date && /^\d{4}-\d{2}-\d{2}$/.test(ev.date)) {
+      if (ev.date && ISO_DATE_RE.test(ev.date)) {
         keys.add(ev.date.slice(0, 7));
       } else {
         hasUndated = true;
@@ -168,7 +171,8 @@ export default function Admin() {
   const formatMonthLabel = (key) => {
     if (!key) return 'All events';
     if (key === 'undated') return 'Undated';
-    const date = new Date(`${key}-01T00:00:00`);
+    const [year, month] = key.split('-').map(Number);
+    const date = new Date(year, month - 1, 1);
     return date.toLocaleString('en-US', { month: 'long', year: 'numeric' });
   };
 
