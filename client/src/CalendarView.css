@@ -47,21 +47,29 @@
 /* ── Top bar ─────────────────────────────────────────────── */
 .cal__topbar {
   display: grid;
+  grid-template-columns: 36px 1fr 36px;
+  align-items: center;
+  padding: 14px 16px 8px;
+  background: var(--c-gap);
+  column-gap: 10px;
+}
+
+.cal__topbar-actions {
+  display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  padding: 14px 16px 12px;
+  padding: 0 16px 10px;
   background: var(--c-gap);
 }
 
-.cal__topbar-left {
-  justify-self: start;
+.cal__actions-center {
+  grid-column: 2;
+  justify-self: center;
 }
 
-.cal__topbar-right {
+.cal__actions-right {
+  grid-column: 3;
   justify-self: end;
-  display: flex;
-  align-items: center;
-  gap: 10px;
 }
 
 .cal__month-label {
@@ -73,19 +81,40 @@
   text-align: center;
   margin: 0;
   white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.cal__month-main { line-height: 1.1; }
+
+.cal__month-sub {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--c-text-muted);
 }
 
 .cal__nav-btn {
   background: none;
   border: none;
-  font-size: 1.8rem;
+  font-size: 1.6rem;
   color: var(--c-text-dim);
   cursor: pointer;
   line-height: 1;
-  padding: 0 4px;
-  transition: color 0.12s;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  padding: 0;
+  transition: color 0.12s, background 0.12s;
+  flex-shrink: 0;
 }
-.cal__nav-btn:hover { color: var(--c-text); }
+.cal__nav-btn:hover { color: var(--c-text); background: var(--c-hover); }
 
 .cal__today-btn {
   font-size: 0.7rem;
@@ -95,11 +124,38 @@
   color: var(--c-text);
   background: none;
   border: none;
-  padding: 6px 14px;
+  padding: 0 12px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
   cursor: pointer;
   transition: background 0.12s;
+  border-radius: 4px;
+  min-width: 72px;
+  justify-content: center;
 }
 .cal__today-btn:hover { background: var(--c-hover); }
+
+.cal__toggle-btn {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-text);
+  background: none;
+  border: none;
+  padding: 0 12px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.12s;
+  border-radius: 4px;
+  min-width: 72px;
+  justify-content: center;
+}
+.cal__toggle-btn:hover { background: var(--c-hover); }
+.cal__toggle-btn--active { background: var(--c-hover); }
 
 /* ── Column day-of-week headers ─────────────────────────── */
 .cal-col-headers {
@@ -190,6 +246,14 @@
   line-height: 1;
 }
 
+.cal-cell__day-greg {
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--c-text-muted);
+  margin: 2px 0 0 10px;
+}
+
 .cal-cell--other .cal-cell__day {
   color: var(--c-text-muted);
 }
@@ -202,6 +266,7 @@
 }
 /* White text when image is in background */
 .cal-cell--has-img .cal-cell__day           { color: #fff; }
+.cal-cell--has-img .cal-cell__day-greg      { color: rgba(255,255,255,0.8); }
 .cal-cell--has-img.cal-cell--today .cal-cell__day {
   background: rgba(255,255,255,0.25);
   color: #fff;
@@ -335,13 +400,24 @@
 .cal-modal__event + .cal-modal__event { background: #f8f8f8; }
 .cal-modal--dark .cal-modal__event + .cal-modal__event { background: #141414; }
 
-.cal-modal__event-img {
+.cal-modal__event-img-container {
   width: 100%;
-  height: 160px;
-  background-size: cover;
-  background-position: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   margin-bottom: 14px;
 }
+.cal-modal__event-img {
+  max-width: 100%;
+  max-height: 60vh;
+  display: block;
+  border-radius: 4px;
+  cursor: zoom-in;
+  object-fit: contain;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  transition: opacity 0.15s;
+}
+.cal-modal__event-img:hover { opacity: 0.9; }
 
 .cal-modal__event-body {
   display: flex;
@@ -391,7 +467,51 @@
   margin-top: 10px;
 }
 .cal-modal--dark .cal-modal__desc { color: #999; }
+/* ── Image lightbox ──────────────────────────────────── */
+.cal-lightbox__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  cursor: zoom-out;
+  animation: cal-fade 0.15s ease;
+}
 
+.cal-lightbox__img {
+  max-width: 90vw;
+  max-height: 90vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 8px 48px rgba(0,0,0,0.6);
+  cursor: default;
+  user-select: none;
+  margin: auto;
+}
+
+.cal-lightbox__close {
+  position: fixed;
+  top: 16px;
+  right: 20px;
+  background: rgba(255,255,255,0.15);
+  border: none;
+  color: #fff;
+  font-size: 1.2rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.cal-lightbox__close:hover { background: rgba(255,255,255,0.28); }
 /* ── Day hover card ────────────────────────────────────── */
 .cal-hover-card {
   position: fixed;
@@ -468,18 +588,23 @@
 /* ── Tablet (600–899px) ─────────────────────────────────── */
 @media (min-width: 600px) and (max-width: 899px) {
   .cal-cell__day    { width: 22px; height: 22px; font-size: 0.75rem; }
+  .cal-cell__day-greg { font-size: 0.5rem; }
   .cal-event__title { font-size: 0.62rem; }
   .cal__month-label { font-size: 1.1rem; min-width: 150px; }
+  .cal__topbar      { grid-template-columns: 32px 1fr 32px; }
+  .cal__topbar-actions { padding: 0 16px 8px; }
 }
 
 /* ── Mobile (<600px) ────────────────────────────────────── */
 /* Always 7-column grid — cells are compact, event text hidden, dot shown */
 @media (max-width: 599px) {
-  .cal__topbar      { padding: 10px 12px 8px; }
+  .cal__topbar      { padding: 10px 12px 6px; grid-template-columns: 28px 1fr 28px; }
+  .cal__topbar-actions { padding: 0 12px 8px; }
   .cal__month-label { font-size: 0.95rem; min-width: 110px; }
-  .cal__nav-btn     { font-size: 1.3rem; }
+  .cal__nav-btn     { font-size: 1.3rem; width: 28px; height: 28px; }
   .cal-col-header   { font-size: 0.52rem; letter-spacing: 0.04em; padding: 5px 1px 4px; }
   .cal-cell__day    { width: 20px; height: 20px; font-size: 0.68rem; }
+  .cal-cell__day-greg { font-size: 0.45rem; margin-left: 8px; }
 
   /* Hide text rows — show dot instead */
   .cal-cell__events { display: none; }

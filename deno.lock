@@ -11,9 +11,9 @@
   "workspace": {
     "packageJson": {
       "dependencies": [
-        "npm:@anthropic-ai/sdk@0.30",
         "npm:@supabase/supabase-js@^2.45.0",
-        "npm:concurrently@^8.2.2"
+        "npm:concurrently@^8.2.2",
+        "npm:openai@^4.104.0"
       ]
     }
   }

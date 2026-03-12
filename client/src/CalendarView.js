@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './CalendarView.css';
 
 // ────────────────────────────────────────────────────────────────
@@ -23,6 +23,12 @@ function CalendarView({ events = [], darkMode = false }) {
   );
   const [selectedDay, setSelectedDay] = useState(null); // { date, events[] }
   const [hoveredDay,  setHoveredDay]  = useState(null); // { events, rect }
+  const [lightboxImg, setLightboxImg] = useState(null); // url string
+  const [useHijri,    setUseHijri]    = useState(false);
+  const [hijriMap,    setHijriMap]    = useState({});
+  const [hijriMonthLabel, setHijriMonthLabel] = useState('');
+  const [hijriLoading, setHijriLoading] = useState(false);
+  const hijriCacheRef = useRef({});
 
   const year  = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -71,17 +77,80 @@ function CalendarView({ events = [], darkMode = false }) {
   const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
   const goToday   = () => setCurrentDate(new Date(today.getFullYear(), today.getMonth(), 1));
 
+  useEffect(() => {
+    if (!useHijri) return;
+    const cacheKey = `${year}-${month + 1}`;
+    const cached = hijriCacheRef.current[cacheKey];
+    if (cached) {
+      setHijriMap(cached.map);
+      setHijriMonthLabel(cached.label);
+      return;
+    }
+
+    const fetchHijri = async () => {
+      setHijriLoading(true);
+      try {
+        const res = await fetch(`https://api.aladhan.com/v1/gToHCalendar/${month + 1}/${year}`);
+        const data = await res.json();
+        const days = data?.data || [];
+
+        const map = {};
+        days.forEach((d) => {
+          const gDate = d?.gregorian?.date; // DD-MM-YYYY
+          const h = d?.hijri;
+          if (!gDate || !h) return;
+          const [dd, mm, yyyy] = gDate.split('-');
+          const iso = `${yyyy}-${mm}-${dd}`;
+          map[iso] = {
+            day: h.day,
+            month: h.month?.en,
+            year: h.year,
+          };
+        });
+
+        const mid = days[Math.floor(days.length / 2)]?.hijri;
+        const label = mid ? `${mid.month?.en} ${mid.year}` : '';
+        hijriCacheRef.current[cacheKey] = { map, label };
+        setHijriMap(map);
+        setHijriMonthLabel(label);
+      } catch (err) {
+        console.error('[hijri] fetch failed', err);
+      } finally {
+        setHijriLoading(false);
+      }
+    };
+
+    fetchHijri();
+  }, [month, year, useHijri]);
+
+  const monthLabel = useHijri && hijriMonthLabel
+    ? hijriMonthLabel
+    : `${MONTHS[month]} ${year}`;
+  const monthSubLabel = useHijri && hijriMonthLabel ? `${MONTHS[month]} ${year}` : '';
+
   return (
     <div className={`cal${darkMode ? ' cal--dark' : ''}`}>
 
       {/* ── Top bar ─────────────────────────────────────────────*/}
       <div className="cal__topbar">
-        <div className="cal__topbar-left">
-          <button className="cal__nav-btn" onClick={prevMonth} aria-label="Previous month">&#8249;</button>
+        <button className="cal__nav-btn" onClick={prevMonth} aria-label="Previous month">&#8249;</button>
+        <h2 className="cal__month-label">
+          <span className="cal__month-main">{monthLabel}</span>
+          {monthSubLabel && <span className="cal__month-sub">{monthSubLabel}</span>}
+        </h2>
+        <button className="cal__nav-btn" onClick={nextMonth} aria-label="Next month">&#8250;</button>
+      </div>
+      <div className="cal__topbar-actions">
+        <div className="cal__actions-center">
+          <button
+            className={`cal__toggle-btn${useHijri ? ' cal__toggle-btn--active' : ''}`}
+            onClick={() => setUseHijri(v => !v)}
+            disabled={hijriLoading}
+          >
+            {hijriLoading ? 'Loading…' : 'Hijri'}
+          </button>
         </div>
-        <h2 className="cal__month-label">{MONTHS[month]} {year}</h2>
-        <div className="cal__topbar-right">
-          <button className="cal__nav-btn" onClick={nextMonth} aria-label="Next month">&#8250;</button>
+        <div className="cal__actions-right">
           <button className="cal__today-btn" onClick={goToday}>Today</button>
         </div>
       </div>
@@ -129,7 +198,16 @@ function CalendarView({ events = [], darkMode = false }) {
 
               {/* Content layer — above image via z-index */}
               <div className="cal-cell__content">
-                <span className="cal-cell__day">{cell.day}</span>
+                {(() => {
+                  const iso = makeDateStr(cell.day);
+                  const h = useHijri && hijriMap[iso];
+                  return (
+                    <>
+                      <span className="cal-cell__day">{h ? h.day : cell.day}</span>
+                      {h && <span className="cal-cell__day-greg">{cell.day}</span>}
+                    </>
+                  );
+                })()}
 
                 {/* Event titles — hidden on mobile, dot shown instead */}
                 {cell.current && cellEvents.length > 0 && (
@@ -219,10 +297,15 @@ function CalendarView({ events = [], darkMode = false }) {
               {selectedDay.events.map((ev, i) => (
                 <div key={i} className="cal-modal__event">
                   {ev.image_url && (
-                    <div
-                      className="cal-modal__event-img"
-                      style={{ backgroundImage: `url(${ev.image_url})` }}
-                    />
+                    <div className="cal-modal__event-img-container">
+                      <img
+                        className="cal-modal__event-img"
+                        src={ev.image_url}
+                        alt={ev.title}
+                        onClick={() => setLightboxImg(ev.image_url)}
+                        title="Click to view full image"
+                      />
+                    </div>
                   )}
                   <div className="cal-modal__event-body">
                     {selectedDay.events.length > 1 && (
@@ -258,6 +341,26 @@ function CalendarView({ events = [], darkMode = false }) {
           </div>
         </div>
       )}
+      {/* ── Lightbox ──────────────────────────────────────────*/}
+      {lightboxImg && (
+        <div
+          className="cal-lightbox__overlay"
+          onClick={() => setLightboxImg(null)}
+        >
+          <img
+            className="cal-lightbox__img"
+            src={lightboxImg}
+            alt="Event flyer"
+            onClick={e => e.stopPropagation()}
+          />
+          <button
+            className="cal-lightbox__close"
+            onClick={() => setLightboxImg(null)}
+            aria-label="Close"
+          >&#x2715;</button>
+        </div>
+      )}
+
     </div>
   );
 }

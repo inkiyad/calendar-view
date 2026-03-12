@@ -92,7 +92,7 @@ export default function Admin() {
       const res  = await fetch('/.netlify/functions/save-event', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ eventData: { ...manualForm, is_event: true }, croppedImageBase64, mimeType }),
+        body:    JSON.stringify({ eventData: { ...manualForm, is_event: true }, originalImageBase64: croppedImageBase64, mimeType }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -184,7 +184,7 @@ export default function Admin() {
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({
             eventData,
-            croppedImageBase64: croppedSrc?.split(',')[1] || null,
+            originalImageBase64: imageBase64,
             mimeType,
           }),
         });
@@ -216,13 +216,13 @@ export default function Admin() {
     updateItem(item.id, { status: 'saving' });
     try {
       const { crop, ...eventData } = item.extracted;  // eslint-disable-line no-unused-vars
-      const croppedBase64 = item.croppedSrc?.split(',')[1] || null;
+      const originalBase64 = await fileToBase64(item.file);
       const mimeType = item.file?.type || 'image/jpeg';
 
       const res  = await fetch('/.netlify/functions/save-event', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ eventData, croppedImageBase64: croppedBase64, mimeType }),
+        body:    JSON.stringify({ eventData, originalImageBase64: originalBase64, mimeType }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
