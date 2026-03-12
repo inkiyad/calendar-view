@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import './Admin.css';
 
 // ─── Canvas crop helper ────────────────────────────────────────────────────────
@@ -34,6 +34,20 @@ const fileToBase64 = (file) =>
 
 // ─── Admin component ─────────────────────────────────────────────────────────
 export default function Admin() {
+  const [darkMode, setDarkMode] = useState(() => {
+    const stored = localStorage.getItem('adm_theme');
+    if (stored) return stored === 'dark';
+    return false;
+  });
+
+  const toggleDark = () => {
+    setDarkMode(prev => {
+      const next = !prev;
+      localStorage.setItem('adm_theme', next ? 'dark' : 'light');
+      return next;
+    });
+  };
+
   // ── Auth ──────────────────────────────────────────────────────────────────
   const [authed, setAuthed] = useState(() => sessionStorage.getItem('adm_authed') === '1');
   const [authInput, setAuthInput] = useState('');
@@ -67,6 +81,7 @@ export default function Admin() {
   const [editSaving,    setEditSaving]    = useState(false);
   const [queueEdits,    setQueueEdits]    = useState({});
   const [selectedEvIds, setSelectedEvIds] = useState(new Set()); // bulk delete
+  const [selectedMonth, setSelectedMonth] = useState(null);
 
   // ── Section C state — manual add ─────────────────────────────────────────
   const emptyForm = { title: '', date: '', time: '', end_time: '', location: '', description: '', registration_link: '' };
@@ -122,6 +137,54 @@ export default function Admin() {
   }, []);
 
   useEffect(() => { loadEvents(); }, [loadEvents]);
+
+  const monthKeys = useMemo(() => {
+    const keys = new Set();
+    let hasUndated = false;
+    events.forEach((ev) => {
+      if (ev.date && /^\d{4}-\d{2}-\d{2}$/.test(ev.date)) {
+        keys.add(ev.date.slice(0, 7));
+      } else {
+        hasUndated = true;
+      }
+    });
+    const sorted = Array.from(keys).sort();
+    if (hasUndated) sorted.push('undated');
+    return sorted;
+  }, [events]);
+
+  useEffect(() => {
+    if (!monthKeys.length) {
+      setSelectedMonth(null);
+      return;
+    }
+    if (!selectedMonth || !monthKeys.includes(selectedMonth)) {
+      setSelectedMonth(monthKeys[monthKeys.length - 1]);
+    }
+  }, [monthKeys, selectedMonth]);
+
+  const selectedMonthIndex = selectedMonth ? monthKeys.indexOf(selectedMonth) : -1;
+
+  const formatMonthLabel = (key) => {
+    if (!key) return 'All events';
+    if (key === 'undated') return 'Undated';
+    const date = new Date(`${key}-01T00:00:00`);
+    return date.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+  };
+
+  const visibleEvents = useMemo(() => {
+    const filtered = (() => {
+      if (!selectedMonth) return events;
+      if (selectedMonth === 'undated') return events.filter(ev => !ev.date);
+      return events.filter(ev => ev.date && ev.date.startsWith(selectedMonth));
+    })();
+    return [...filtered].sort((a, b) => {
+      const aKey = a.date || '';
+      const bKey = b.date || '';
+      if (aKey !== bKey) return aKey.localeCompare(bKey);
+      return (a.time || '').localeCompare(b.time || '');
+    });
+  }, [events, selectedMonth]);
 
   // ── File handling ─────────────────────────────────────────────────────────
   const acceptFiles = (files) => {
@@ -354,31 +417,36 @@ export default function Admin() {
   // ──────────────────────────────────────────────────────────────────────────
   if (!authed) {
     return (
-      <div className="adm" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%', maxWidth: '340px', padding: '40px 32px', background: '#f2f2f2', borderRadius: '8px' }}>
-          <p style={{ margin: 0, fontFamily: 'Helvetica Neue, sans-serif', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#777' }}>Calendar Admin</p>
+      <div className={`adm adm-login${darkMode ? ' adm--dark' : ''}`}>
+        <form onSubmit={handleLogin} className="adm-login-card">
+          <p className="adm-login-title">Calendar Admin</p>
           <input
             type="password"
             autoFocus
             placeholder="Password"
             value={authInput}
             onChange={(e) => { setAuthInput(e.target.value); setAuthError(false); }}
-            style={{ padding: '10px 14px', borderRadius: '6px', border: authError ? '1.5px solid #c03030' : '1.5px solid #ccc', fontFamily: 'inherit', fontSize: '15px', outline: 'none' }}
+            className={`adm-login-input${authError ? ' adm-login-input--error' : ''}`}
           />
-          {authError && <p style={{ margin: 0, color: '#c03030', fontSize: '13px' }}>Incorrect password.</p>}
-          <button type="submit" style={{ padding: '10px 20px', background: '#111', color: '#fff', border: 'none', borderRadius: '6px', fontFamily: 'inherit', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>Enter</button>
+          {authError && <p className="adm-login-error">Incorrect password.</p>}
+          <button type="submit" className="adm-login-btn">Enter</button>
         </form>
       </div>
     );
   }
   return (
-    <div className="adm">
+    <div className={`adm${darkMode ? ' adm--dark' : ''}`}>
 
       <header className="adm-header">
         <span className="adm-header-title">Calendar Admin</span>
-        <button className="adm-btn adm-btn--ghost adm-btn--sm" onClick={() => { window.location.href = '/'; }}>
-          ← Back to calendar
-        </button>
+        <div className="adm-header-actions">
+          <button className="adm-theme-toggle" onClick={toggleDark} title="Toggle theme">
+            {darkMode ? '☀️ Light' : '🌙 Dark'}
+          </button>
+          <button className="adm-btn adm-btn--ghost adm-btn--sm" onClick={() => { window.location.href = '/'; }}>
+            ← Back to calendar
+          </button>
+        </div>
       </header>
 
       <div className="adm-body">
@@ -532,8 +600,32 @@ export default function Admin() {
             <div className="adm-empty">No events found.</div>
           )}
 
+          {!loading && events.length > 0 && monthKeys.length > 0 && (
+            <div className="adm-month-controls">
+              <button
+                className="adm-month-btn"
+                onClick={() => setSelectedMonth(monthKeys[selectedMonthIndex - 1])}
+                disabled={selectedMonthIndex <= 0}
+              >
+                ← Prev
+              </button>
+              <div className="adm-month-label">{formatMonthLabel(selectedMonth)}</div>
+              <button
+                className="adm-month-btn"
+                onClick={() => setSelectedMonth(monthKeys[selectedMonthIndex + 1])}
+                disabled={selectedMonthIndex === -1 || selectedMonthIndex >= monthKeys.length - 1}
+              >
+                Next →
+              </button>
+            </div>
+          )}
+
+          {!loading && events.length > 0 && visibleEvents.length === 0 && (
+            <div className="adm-empty">No events in this month.</div>
+          )}
+
           <ul className="adm-event-list">
-            {events.map((ev) => (
+            {visibleEvents.map((ev) => (
               <li
                 key={ev.id}
                 className={`adm-event-row${editingEvent?.id === ev.id ? ' adm-event-row--editing' : ''}${selectedEvIds.has(ev.id) ? ' adm-event-row--selected' : ''}`}
