@@ -34,6 +34,31 @@ const fileToBase64 = (file) =>
 
 // ─── Admin component ─────────────────────────────────────────────────────────
 export default function Admin() {
+  const today = new Date();
+  const [darkMode, setDarkMode] = useState(() => {
+    const stored = localStorage.getItem('app_theme');
+    if (stored) return stored === 'dark';
+    return false;
+  });
+
+  const toggleDark = () => {
+    setDarkMode(prev => {
+      const next = !prev;
+      localStorage.setItem('app_theme', next ? 'dark' : 'light');
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key === 'app_theme' && e.newValue) {
+        setDarkMode(e.newValue === 'dark');
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
   // ── Auth ──────────────────────────────────────────────────────────────────
   const [authed, setAuthed] = useState(() => sessionStorage.getItem('adm_authed') === '1');
   const [authInput, setAuthInput] = useState('');
@@ -67,6 +92,9 @@ export default function Admin() {
   const [editSaving,    setEditSaving]    = useState(false);
   const [queueEdits,    setQueueEdits]    = useState({});
   const [selectedEvIds, setSelectedEvIds] = useState(new Set()); // bulk delete
+  const [monthCursor,   setMonthCursor]   = useState(
+    new Date(today.getFullYear(), today.getMonth(), 1)
+  );
 
   // ── Section C state — manual add ─────────────────────────────────────────
   const emptyForm = { title: '', date: '', time: '', end_time: '', location: '', description: '', registration_link: '' };
@@ -299,8 +327,7 @@ export default function Admin() {
   };
 
   // ── Bulk delete ───────────────────────────────────────────────────────────
-  const handleBulkDelete = async () => {
-    const ids = [...selectedEvIds];
+  const handleBulkDelete = async (ids) => {
     if (!ids.length || !window.confirm(`Delete ${ids.length} event${ids.length > 1 ? 's' : ''}?`)) return;
     try {
       const res  = await fetch('/.netlify/functions/delete-event', {
@@ -310,8 +337,12 @@ export default function Admin() {
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
-      setEvents(prev => prev.filter(ev => !selectedEvIds.has(ev.id)));
-      setSelectedEvIds(new Set());
+      setEvents(prev => prev.filter(ev => !ids.includes(ev.id)));
+      setSelectedEvIds(prev => {
+        const next = new Set(prev);
+        ids.forEach(id => next.delete(id));
+        return next;
+      });
     } catch (err) {
       alert('Bulk delete failed: ' + err.message);
     }
@@ -323,12 +354,16 @@ export default function Admin() {
     return next;
   });
 
-  const toggleSelectAll = () => {
-    if (selectedEvIds.size === events.length) {
-      setSelectedEvIds(new Set());
-    } else {
-      setSelectedEvIds(new Set(events.map(ev => ev.id)));
-    }
+  const toggleSelectAll = (visibleIds, allVisibleSelected) => {
+    setSelectedEvIds(prev => {
+      const next = new Set(prev);
+      if (allVisibleSelected) {
+        visibleIds.forEach(id => next.delete(id));
+      } else {
+        visibleIds.forEach(id => next.add(id));
+      }
+      return next;
+    });
   };
 
   // ── Delete single event ───────────────────────────────────────────────────
@@ -354,31 +389,76 @@ export default function Admin() {
   // ──────────────────────────────────────────────────────────────────────────
   if (!authed) {
     return (
-      <div className="adm" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%', maxWidth: '340px', padding: '40px 32px', background: '#f2f2f2', borderRadius: '8px' }}>
-          <p style={{ margin: 0, fontFamily: 'Helvetica Neue, sans-serif', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#777' }}>Calendar Admin</p>
+      <div className={`adm adm-login${darkMode ? ' adm--dark' : ''}`}>
+        <form onSubmit={handleLogin} className="adm-login-card">
+          <p className="adm-login-title">Calendar Admin</p>
           <input
             type="password"
             autoFocus
             placeholder="Password"
             value={authInput}
             onChange={(e) => { setAuthInput(e.target.value); setAuthError(false); }}
-            style={{ padding: '10px 14px', borderRadius: '6px', border: authError ? '1.5px solid #c03030' : '1.5px solid #ccc', fontFamily: 'inherit', fontSize: '15px', outline: 'none' }}
+            className={`adm-login-input${authError ? ' adm-login-input--error' : ''}`}
           />
-          {authError && <p style={{ margin: 0, color: '#c03030', fontSize: '13px' }}>Incorrect password.</p>}
-          <button type="submit" style={{ padding: '10px 20px', background: '#111', color: '#fff', border: 'none', borderRadius: '6px', fontFamily: 'inherit', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>Enter</button>
+          {authError && <p className="adm-login-error">Incorrect password.</p>}
+          <button type="submit" className="adm-login-btn">Enter</button>
         </form>
       </div>
     );
   }
+
+  const isSameMonth = (dateStr, cursor) => {
+    if (!dateStr) return false;
+    const [yy, mm] = dateStr.split('-');
+    return Number(yy) === cursor.getFullYear() && Number(mm) === cursor.getMonth() + 1;
+  };
+
+  const hasEventsInMonth = (cursor) =>
+    events.some(ev => isSameMonth(ev.date, cursor));
+
+  const monthLabel = new Date(monthCursor.getFullYear(), monthCursor.getMonth(), 1)
+    .toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  const visibleEvents = events
+    .filter(ev => isSameMonth(ev.date, monthCursor))
+    .slice()
+    .sort((a, b) => {
+      const dateCmp = (a.date || '').localeCompare(b.date || '');
+      if (dateCmp !== 0) return dateCmp;
+      return (a.time || '').localeCompare(b.time || '');
+    });
+
+  const visibleIds = visibleEvents.map(ev => ev.id);
+  const visibleSelectedIds = visibleEvents.filter(ev => selectedEvIds.has(ev.id)).map(ev => ev.id);
+  const allVisibleSelected = visibleIds.length > 0 && visibleSelectedIds.length === visibleIds.length;
+
+  const prevMonth = () => {
+    const target = new Date(monthCursor.getFullYear(), monthCursor.getMonth() - 1, 1);
+    if (hasEventsInMonth(target)) setMonthCursor(target);
+  };
+  const nextMonth = () => {
+    const target = new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 1);
+    if (hasEventsInMonth(target)) setMonthCursor(target);
+  };
+  const goThisMonth = () =>
+    setMonthCursor(new Date(today.getFullYear(), today.getMonth(), 1));
+
+  const prevEnabled = hasEventsInMonth(new Date(monthCursor.getFullYear(), monthCursor.getMonth() - 1, 1));
+  const nextEnabled = hasEventsInMonth(new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 1));
+
   return (
-    <div className="adm">
+    <div className={`adm${darkMode ? ' adm--dark' : ''}`}>
 
       <header className="adm-header">
         <span className="adm-header-title">Calendar Admin</span>
-        <button className="adm-btn adm-btn--ghost adm-btn--sm" onClick={() => { window.location.href = '/'; }}>
-          ← Back to calendar
-        </button>
+        <div className="adm-header-actions">
+          <button className="adm-theme-toggle" onClick={toggleDark} title="Toggle theme">
+            {darkMode ? '☀️ Light' : '🌙 Dark'}
+          </button>
+          <button className="adm-btn adm-btn--ghost adm-btn--sm" onClick={() => { window.location.href = '/'; }}>
+            ← Back to calendar
+          </button>
+        </div>
       </header>
 
       <div className="adm-body">
@@ -505,94 +585,10 @@ export default function Admin() {
           )}
         </section>
 
-        {/* ── SECTION B ── */}
+        {/* ── SECTION B — Manual add ── */}
         <section className="adm-card">
           <div className="adm-section-header">
-            <h2 className="adm-section-title">B. Manage Events</h2>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              {selectedEvIds.size > 0 && (
-                <button className="adm-btn adm-btn--sm" style={{ background: 'var(--red)', color: '#fff', border: 'none' }} onClick={handleBulkDelete}>
-                  Delete {selectedEvIds.size} selected
-                </button>
-              )}
-              {events.length > 0 && (
-                <button className="adm-btn adm-btn--ghost adm-btn--sm" onClick={toggleSelectAll}>
-                  {selectedEvIds.size === events.length ? 'Deselect all' : 'Select all'}
-                </button>
-              )}
-              <button className="adm-btn adm-btn--ghost adm-btn--sm" onClick={loadEvents} disabled={loading}>
-                {loading ? 'Loading…' : 'Refresh'}
-              </button>
-            </div>
-          </div>
-
-          {loading && <div className="adm-empty">Loading events…</div>}
-
-          {!loading && events.length === 0 && (
-            <div className="adm-empty">No events found.</div>
-          )}
-
-          <ul className="adm-event-list">
-            {events.map((ev) => (
-              <li
-                key={ev.id}
-                className={`adm-event-row${editingEvent?.id === ev.id ? ' adm-event-row--editing' : ''}${selectedEvIds.has(ev.id) ? ' adm-event-row--selected' : ''}`}
-              >
-                <label className="adm-row-check" onClick={e => e.stopPropagation()}>
-                  <input
-                    type="checkbox"
-                    checked={selectedEvIds.has(ev.id)}
-                    onChange={() => toggleSelect(ev.id)}
-                  />
-                </label>
-                {ev.image_url ? (
-                  <img src={ev.image_url} alt={ev.title} className="adm-event-row-thumb" />
-                ) : (
-                  <div className="adm-event-row-thumb adm-event-row-thumb--empty" />
-                )}
-                {editingEvent?.id === ev.id ? (
-                  <div className="adm-inline-form">
-                    <div className="adm-inline-form-row">
-                      <input className="adm-inline-input" placeholder="Title" value={editingEvent.title || ''} onChange={e => setEditingEvent(p => ({ ...p, title: e.target.value }))} />
-                    </div>
-                    <div className="adm-inline-form-row adm-inline-form-row--3">
-                      <input className="adm-inline-input" placeholder="Date (YYYY-MM-DD)" value={editingEvent.date || ''} onChange={e => setEditingEvent(p => ({ ...p, date: e.target.value }))} />
-                      <input className="adm-inline-input" placeholder="Time" value={editingEvent.time || ''} onChange={e => setEditingEvent(p => ({ ...p, time: e.target.value }))} />
-                      <input className="adm-inline-input" placeholder="Location" value={editingEvent.location || ''} onChange={e => setEditingEvent(p => ({ ...p, location: e.target.value }))} />
-                    </div>
-                    <div className="adm-inline-form-row">
-                      <input className="adm-inline-input" placeholder="Description" value={editingEvent.description || ''} onChange={e => setEditingEvent(p => ({ ...p, description: e.target.value }))} />
-                    </div>
-                    <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-                      <button className="adm-btn adm-btn--gold adm-btn--sm" style={{ fontSize: 12 }} onClick={handleEditSave} disabled={editSaving}>
-                        {editSaving ? <><span className="adm-spinner" /> Saving…</> : 'Save'}
-                      </button>
-                      <button className="adm-btn adm-btn--ghost adm-btn--sm" style={{ fontSize: 12 }} onClick={() => setEditingEvent(null)}>Cancel</button>
-                    </div>
-                  </div>
-                ) : (
-                  <div
-                    className="adm-event-row-info"
-                    onClick={() => setEditingEvent({ ...ev })}
-                    style={{ cursor: 'pointer' }}
-                    title="Click to edit"
-                  >
-                    <span className="adm-event-row-title">{ev.title}</span>
-                    <span className="adm-event-row-meta">{ev.date}{ev.time ? ` · ${ev.time}` : ''}{ev.location ? ` · ${ev.location}` : ''}</span>
-                  </div>
-                )}
-                {editingEvent?.id !== ev.id && (
-                  <button className="adm-delete-btn" title="Delete event" onClick={() => handleDelete(ev.id)}>×</button>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        {/* ── SECTION C — Manual add ── */}
-        <section className="adm-card">
-          <div className="adm-section-header">
-            <h2 className="adm-section-title">C. Add Event Manually</h2>
+            <h2 className="adm-section-title">B. Add Event Manually</h2>
             <button
               className={`adm-btn adm-btn--sm ${addOpen ? 'adm-btn--ghost' : 'adm-btn--gold'}`}
               onClick={() => { setAddOpen(o => !o); setManualForm(emptyForm); setManualImg(null); }}
@@ -688,6 +684,107 @@ export default function Admin() {
               </div>
             </form>
           )}
+        </section>
+
+        {/* ── SECTION C ── */}
+        <section className="adm-card">
+          <div className="adm-section-header adm-section-header--manage">
+            <h2 className="adm-section-title">C. Manage Events</h2>
+            <div className="adm-month-nav">
+              <button className="adm-month-btn" onClick={prevMonth} aria-label="Previous month" disabled={!prevEnabled}>
+                &#8249;
+              </button>
+              <span className="adm-month-label">{monthLabel}</span>
+              <button className="adm-month-btn" onClick={nextMonth} aria-label="Next month" disabled={!nextEnabled}>
+                &#8250;
+              </button>
+            </div>
+            <div className="adm-manage-actions">
+              <button className="adm-btn adm-btn--ghost adm-btn--sm" onClick={goThisMonth}>This month</button>
+              {visibleSelectedIds.length > 0 && (
+                <button
+                  className="adm-btn adm-btn--sm"
+                  style={{ background: 'var(--red)', color: '#fff', border: 'none' }}
+                  onClick={() => handleBulkDelete(visibleSelectedIds)}
+                >
+                  Delete {visibleSelectedIds.length} selected
+                </button>
+              )}
+              {visibleEvents.length > 0 && (
+                <button
+                  className="adm-btn adm-btn--ghost adm-btn--sm"
+                  onClick={() => toggleSelectAll(visibleIds, allVisibleSelected)}
+                >
+                  {allVisibleSelected ? 'Deselect all' : 'Select all'}
+                </button>
+              )}
+              <button className="adm-btn adm-btn--ghost adm-btn--sm" onClick={loadEvents} disabled={loading}>
+                {loading ? 'Loading…' : 'Refresh'}
+              </button>
+            </div>
+          </div>
+
+          {loading && <div className="adm-empty">Loading events…</div>}
+
+          {!loading && visibleEvents.length === 0 && (
+            <div className="adm-empty">No events for {monthLabel}.</div>
+          )}
+
+          <ul className="adm-event-list">
+            {visibleEvents.map((ev) => (
+              <li
+                key={ev.id}
+                className={`adm-event-row${editingEvent?.id === ev.id ? ' adm-event-row--editing' : ''}${selectedEvIds.has(ev.id) ? ' adm-event-row--selected' : ''}`}
+              >
+                <label className="adm-row-check" onClick={e => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    checked={selectedEvIds.has(ev.id)}
+                    onChange={() => toggleSelect(ev.id)}
+                  />
+                </label>
+                {ev.image_url ? (
+                  <img src={ev.image_url} alt={ev.title} className="adm-event-row-thumb" />
+                ) : (
+                  <div className="adm-event-row-thumb adm-event-row-thumb--empty" />
+                )}
+                {editingEvent?.id === ev.id ? (
+                  <div className="adm-inline-form">
+                    <div className="adm-inline-form-row">
+                      <input className="adm-inline-input" placeholder="Title" value={editingEvent.title || ''} onChange={e => setEditingEvent(p => ({ ...p, title: e.target.value }))} />
+                    </div>
+                    <div className="adm-inline-form-row adm-inline-form-row--3">
+                      <input className="adm-inline-input" placeholder="Date (YYYY-MM-DD)" value={editingEvent.date || ''} onChange={e => setEditingEvent(p => ({ ...p, date: e.target.value }))} />
+                      <input className="adm-inline-input" placeholder="Time" value={editingEvent.time || ''} onChange={e => setEditingEvent(p => ({ ...p, time: e.target.value }))} />
+                      <input className="adm-inline-input" placeholder="Location" value={editingEvent.location || ''} onChange={e => setEditingEvent(p => ({ ...p, location: e.target.value }))} />
+                    </div>
+                    <div className="adm-inline-form-row">
+                      <input className="adm-inline-input" placeholder="Description" value={editingEvent.description || ''} onChange={e => setEditingEvent(p => ({ ...p, description: e.target.value }))} />
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                      <button className="adm-btn adm-btn--gold adm-btn--sm" style={{ fontSize: 12 }} onClick={handleEditSave} disabled={editSaving}>
+                        {editSaving ? <><span className="adm-spinner" /> Saving…</> : 'Save'}
+                      </button>
+                      <button className="adm-btn adm-btn--ghost adm-btn--sm" style={{ fontSize: 12 }} onClick={() => setEditingEvent(null)}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    className="adm-event-row-info"
+                    onClick={() => setEditingEvent({ ...ev })}
+                    style={{ cursor: 'pointer' }}
+                    title="Click to edit"
+                  >
+                    <span className="adm-event-row-title">{ev.title}</span>
+                    <span className="adm-event-row-meta">{ev.date}{ev.time ? ` · ${ev.time}` : ''}{ev.location ? ` · ${ev.location}` : ''}</span>
+                  </div>
+                )}
+                {editingEvent?.id !== ev.id && (
+                  <button className="adm-delete-btn" title="Delete event" onClick={() => handleDelete(ev.id)}>×</button>
+                )}
+              </li>
+            ))}
+          </ul>
         </section>
 
       </div>

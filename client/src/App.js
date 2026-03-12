@@ -7,10 +7,20 @@ import './App.css';
 
 function CalendarApp() {
   const [events, setEvents] = useState([]);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    const stored = localStorage.getItem('app_theme');
+    if (stored) return stored === 'dark';
+    return false;
+  });
   const [isEmbedMode, setIsEmbedMode] = useState(false);
 
-  const toggleDark = () => setDarkMode(prev => !prev);
+  const toggleDark = () => {
+    setDarkMode(prev => {
+      const next = !prev;
+      localStorage.setItem('app_theme', next ? 'dark' : 'light');
+      return next;
+    });
+  };
 
   // Detect embed mode and theme from URL
   useEffect(() => {
@@ -22,8 +32,10 @@ function CalendarApp() {
       setIsEmbedMode(true);
     }
     
-    if (themeParam === 'dark') {
-      setDarkMode(true);
+    if (themeParam === 'dark' || themeParam === 'light') {
+      const next = themeParam === 'dark';
+      setDarkMode(next);
+      localStorage.setItem('app_theme', next ? 'dark' : 'light');
     }
   }, []);
 
