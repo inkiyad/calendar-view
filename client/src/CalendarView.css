@@ -8,8 +8,8 @@
 
 /* ── CSS vars: light mode ─────────────────────────────────── */
 .cal {
-  --c-bg:           #f2f2f2;
-  --c-bg-other:     #eaeaea;
+  --c-bg:           #f6f5f2;
+  --c-bg-other:     #efece7;
   --c-gap:          #ffffff;
   --c-border:       #cccccc;
   --c-text:         #111111;
@@ -31,14 +31,14 @@
 
 /* ── CSS vars: dark mode ──────────────────────────────────── */
 .cal--dark {
-  --c-bg:           #1a1a1a;
-  --c-bg-other:     #141414;
-  --c-gap:          #0a0a0a;
-  --c-border:       #2a2a2a;
+  --c-bg:           #22221f;
+  --c-bg-other:     #1c1c1a;
+  --c-gap:          #1a1a18;
+  --c-border:       #2a2a26;
   --c-text:         #e8e8e8;
   --c-text-muted:   #555555;
   --c-text-dim:     #999999;
-  --c-hover:        #222222;
+  --c-hover:        #2a2a26;
   --c-today-bg:     #e8e8e8;
   --c-today-txt:    #0f0f0f;
   --c-dot:          #e8e8e8;
