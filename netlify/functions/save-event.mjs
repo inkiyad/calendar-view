@@ -2,6 +2,9 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
+  global: {
+    headers: { Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY}` },
+  },
 });
 
 export default async function handler(req) {
@@ -22,7 +25,7 @@ export default async function handler(req) {
     });
   }
 
-  const { eventData, croppedImageBase64, mimeType } = body;
+  const { eventData, croppedImageBase64, originalImageBase64, mimeType } = body;
 
   if (!eventData) {
     return new Response(JSON.stringify({ error: 'eventData is required' }), {
@@ -32,13 +35,16 @@ export default async function handler(req) {
   }
 
   try {
+    const keyPreview = (process.env.SUPABASE_SERVICE_KEY || '').slice(0, 24);
+    console.log('[save-event] Using key prefix:', keyPreview, '— length:', (process.env.SUPABASE_SERVICE_KEY || '').length);
     let imageUrl = eventData.image_url || null;
 
-    // Upload cropped image to Supabase Storage if provided
-    if (croppedImageBase64 && mimeType) {
+    // Upload original image to Supabase Storage if provided (prefer original)
+    const imageBase64 = originalImageBase64 || croppedImageBase64 || null;
+    if (imageBase64 && mimeType) {
       const ext        = mimeType.split('/')[1] || 'jpg';
       const filename   = `event_${Date.now()}.${ext}`;
-      const buffer     = Buffer.from(croppedImageBase64, 'base64');
+      const buffer     = Buffer.from(imageBase64, 'base64');
 
       const { error: uploadError } = await supabase.storage
         .from('event-images')
