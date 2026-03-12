@@ -24,8 +24,8 @@
 
 @media (prefers-color-scheme: dark) {
   .adm {
-    --bg:       #1a1a18;
-    --card:     #1f1f1c;
+    --bg:       #1f1f1f;
+    --card:     #262626;
     --border:   #2a2a26;
     --accent:   #e8e8e8;
     --accent-dim: #bdbdbd;
