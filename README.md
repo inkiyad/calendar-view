@@ -46,13 +46,12 @@ EVENT_TAGS=lecture,youth,sisters,brothers,fundraiser,interfaith,quran,community,
 
 # Admin Configuration
 ADMIN_PASSWORD=your-secure-password-here
-REACT_APP_ADMIN_PASSWORD=your-secure-password-here
+ADMIN_SESSION_SECRET=optional-extra-session-signing-secret
 
 # WhatsApp Webhook (official Business Platform intake)
 WHATSAPP_VERIFY_TOKEN=your-verify-token
 WHATSAPP_APP_SECRET=your-app-secret
 WHATSAPP_ACCESS_TOKEN=your-system-user-or-cloud-api-token
-WHATSAPP_GRAPH_API_VERSION=v20.0
 WHATSAPP_SEND_CONFIRMATIONS=false
 WHATSAPP_ALLOWED_SENDERS=17185551234,13475551234
 ```
@@ -85,6 +84,7 @@ Netlify will:
 - **`cron-poller`** — runs every hour, fetches Instagram posts, calls extract-event
 - **`extract-event`** — sends post to GPT-4o, parses JSON, upserts to Supabase
 - **`delete-event`** — password-protected endpoint for deleting events
+- **`admin-auth`** — validates admin login server-side and returns a short-lived admin session token
 - **`whatsapp-webhook`** — receives direct WhatsApp Business Platform messages, downloads forwarded flyer images, extracts event details, uploads the flyer to Supabase Storage, and inserts the event
 - **`trusted-senders`** — admin-only endpoint for adding/removing WhatsApp numbers allowed to submit events
 
@@ -130,7 +130,7 @@ Access the admin page at `/admin` and log in with your configured password.
 - **Delete events** — remove incorrect or duplicate events
 - **Dark theme** — matches MAS Queens editorial design
 
-To set up the admin page, ensure both `ADMIN_PASSWORD` and `REACT_APP_ADMIN_PASSWORD` are configured in your `.env` file.
+To set up the admin page, configure `ADMIN_PASSWORD`. Optionally set `ADMIN_SESSION_SECRET` to a separate random value for signing short-lived admin session tokens.
 
 ## Roadmap
 - [ ] Multi-organization support

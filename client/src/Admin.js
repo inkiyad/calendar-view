@@ -62,19 +62,26 @@ export default function Admin() {
   // ── Auth ──────────────────────────────────────────────────────────────────
   const [authed, setAuthed] = useState(() => sessionStorage.getItem('adm_authed') === '1');
   const [authInput, setAuthInput] = useState('');
-  const [adminPassword, setAdminPassword] = useState(() => sessionStorage.getItem('adm_password') || '');
+  const [adminToken, setAdminToken] = useState(() => sessionStorage.getItem('adm_token') || '');
   const [authError, setAuthError] = useState(false);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    const correct = process.env.REACT_APP_ADMIN_PASSWORD || 'masqueens2024';
-    if (authInput === correct) {
+    try {
+      const res = await fetch('/.netlify/functions/admin-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: authInput }),
+      });
+      const data = await res.json();
+      if (data.error || !data.token) throw new Error(data.error || 'Login failed');
       sessionStorage.setItem('adm_authed', '1');
-      sessionStorage.setItem('adm_password', authInput);
-      setAdminPassword(authInput);
+      sessionStorage.setItem('adm_token', data.token);
+      setAdminToken(data.token);
       setAuthed(true);
       setAuthError(false);
-    } else {
+      setAuthInput('');
+    } catch {
       setAuthError(true);
       setAuthInput('');
     }
@@ -162,14 +169,14 @@ export default function Admin() {
   useEffect(() => { loadEvents(); }, [loadEvents]);
 
   const loadTrustedSenders = useCallback(async () => {
-    if (!adminPassword) return;
+    if (!adminToken) return;
     setTrustedLoading(true);
     setTrustedError('');
     try {
       const res = await fetch('/.netlify/functions/trusted-senders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'list', adminPassword }),
+        body: JSON.stringify({ action: 'list', adminToken }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -179,7 +186,7 @@ export default function Admin() {
     } finally {
       setTrustedLoading(false);
     }
-  }, [adminPassword]);
+  }, [adminToken]);
 
   useEffect(() => { if (authed) loadTrustedSenders(); }, [authed, loadTrustedSenders]);
 
@@ -192,7 +199,7 @@ export default function Admin() {
       const res = await fetch('/.netlify/functions/trusted-senders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'add', number: trustedInput, adminPassword }),
+        body: JSON.stringify({ action: 'add', number: trustedInput, adminToken }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -213,7 +220,7 @@ export default function Admin() {
       const res = await fetch('/.netlify/functions/trusted-senders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'remove', number, adminPassword }),
+        body: JSON.stringify({ action: 'remove', number, adminToken }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);

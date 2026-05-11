@@ -3,7 +3,7 @@
   command = "cd client && npm install && npm run build"
 
 [build.environment]
-  SECRETS_SCAN_OMIT_KEYS = "ORG_NAME,ORG_DESCRIPTION,ORG_ADDRESS,EVENT_TAGS,INSTAGRAM_HANDLE,REVIEW_ID"
+  SECRETS_SCAN_OMIT_KEYS = "ORG_NAME,ORG_DESCRIPTION,ORG_ADDRESS,EVENT_TAGS,INSTAGRAM_HANDLE,REVIEW_ID,WHATSAPP_GRAPH_API_VERSION"
 
 [dev]
   command    = "npm start --prefix client"

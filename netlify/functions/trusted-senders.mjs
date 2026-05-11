@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 
 const TRUSTED_SENDERS_KEY = 'whatsapp_trusted_senders';
@@ -21,12 +22,29 @@ function jsonResponse(body, status = 200) {
   });
 }
 
-function assertAdmin(password) {
-  const expected = process.env.ADMIN_PASSWORD || '';
-  if (!expected || password !== expected) {
+function timingSafeEqualString(left, right) {
+  const leftBuffer = Buffer.from(left);
+  const rightBuffer = Buffer.from(right);
+  if (leftBuffer.length !== rightBuffer.length) return false;
+  return crypto.timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+function verifyAdminToken(token) {
+  const [payload, signature] = String(token || '').split('.');
+  if (!payload || !signature) return false;
+
+  const secret = process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD || '';
+  if (!secret) return false;
+
+  const expected = crypto.createHmac('sha256', secret).update(payload).digest('base64url');
+  if (!timingSafeEqualString(signature, expected)) return false;
+
+  try {
+    const parsed = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    return parsed.scope === 'calendar-admin' && Number(parsed.exp) > Math.floor(Date.now() / 1000);
+  } catch {
     return false;
   }
-  return true;
 }
 
 async function getStoredSenders() {
@@ -88,7 +106,7 @@ export default async function handler(req) {
     return jsonResponse({ error: 'Invalid JSON body' }, 400);
   }
 
-  if (!assertAdmin(body.adminPassword)) {
+  if (!verifyAdminToken(body.adminToken)) {
     return jsonResponse({ error: 'Unauthorized' }, 401);
   }
 
