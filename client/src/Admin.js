@@ -62,6 +62,7 @@ export default function Admin() {
   // ── Auth ──────────────────────────────────────────────────────────────────
   const [authed, setAuthed] = useState(() => sessionStorage.getItem('adm_authed') === '1');
   const [authInput, setAuthInput] = useState('');
+  const [adminPassword, setAdminPassword] = useState(() => sessionStorage.getItem('adm_password') || '');
   const [authError, setAuthError] = useState(false);
 
   const handleLogin = (e) => {
@@ -69,6 +70,8 @@ export default function Admin() {
     const correct = process.env.REACT_APP_ADMIN_PASSWORD || 'masqueens2024';
     if (authInput === correct) {
       sessionStorage.setItem('adm_authed', '1');
+      sessionStorage.setItem('adm_password', authInput);
+      setAdminPassword(authInput);
       setAuthed(true);
       setAuthError(false);
     } else {
@@ -103,6 +106,13 @@ export default function Admin() {
   const [manualImg,  setManualImg]  = useState(null);  // { file, previewSrc }
   const [manualSaving, setManualSaving] = useState(false);
   const manualImgRef = useRef(null);
+
+  // ── Section D state — trusted WhatsApp senders ──────────────────────────
+  const [trustedSenders, setTrustedSenders] = useState([]);
+  const [trustedInput, setTrustedInput] = useState('');
+  const [trustedLoading, setTrustedLoading] = useState(false);
+  const [trustedSaving, setTrustedSaving] = useState(false);
+  const [trustedError, setTrustedError] = useState('');
 
   const setManualField = (k, v) => setManualForm(p => ({ ...p, [k]: v }));
 
@@ -150,6 +160,70 @@ export default function Admin() {
   }, []);
 
   useEffect(() => { loadEvents(); }, [loadEvents]);
+
+  const loadTrustedSenders = useCallback(async () => {
+    if (!adminPassword) return;
+    setTrustedLoading(true);
+    setTrustedError('');
+    try {
+      const res = await fetch('/.netlify/functions/trusted-senders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'list', adminPassword }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setTrustedSenders(data.senders || []);
+    } catch (err) {
+      setTrustedError(err.message);
+    } finally {
+      setTrustedLoading(false);
+    }
+  }, [adminPassword]);
+
+  useEffect(() => { if (authed) loadTrustedSenders(); }, [authed, loadTrustedSenders]);
+
+  const addTrustedSender = async (e) => {
+    e.preventDefault();
+    if (!trustedInput.trim()) return;
+    setTrustedSaving(true);
+    setTrustedError('');
+    try {
+      const res = await fetch('/.netlify/functions/trusted-senders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'add', number: trustedInput, adminPassword }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setTrustedSenders(data.senders || []);
+      setTrustedInput('');
+    } catch (err) {
+      setTrustedError(err.message);
+    } finally {
+      setTrustedSaving(false);
+    }
+  };
+
+  const removeTrustedSender = async (number) => {
+    if (!window.confirm(`Remove ${number} from trusted WhatsApp senders?`)) return;
+    setTrustedSaving(true);
+    setTrustedError('');
+    try {
+      const res = await fetch('/.netlify/functions/trusted-senders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'remove', number, adminPassword }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setTrustedSenders(data.senders || []);
+    } catch (err) {
+      setTrustedError(err.message);
+    } finally {
+      setTrustedSaving(false);
+    }
+  };
 
   // ── File handling ─────────────────────────────────────────────────────────
   const acceptFiles = (files) => {
@@ -686,10 +760,63 @@ export default function Admin() {
           )}
         </section>
 
-        {/* ── SECTION C ── */}
+        {/* ── SECTION C — WhatsApp trusted senders ── */}
+        <section className="adm-card">
+          <div className="adm-section-header">
+            <h2 className="adm-section-title">C. WhatsApp Trusted Senders</h2>
+            <button className="adm-btn adm-btn--ghost adm-btn--sm" onClick={loadTrustedSenders} disabled={trustedLoading}>
+              {trustedLoading ? 'Loading...' : 'Refresh'}
+            </button>
+          </div>
+
+          <form className="adm-trusted-form" onSubmit={addTrustedSender}>
+            <input
+              className="adm-inline-input"
+              placeholder="Phone number, e.g. +1 718 555 1234"
+              value={trustedInput}
+              onChange={e => setTrustedInput(e.target.value)}
+            />
+            <button className="adm-btn adm-btn--gold adm-btn--sm" type="submit" disabled={trustedSaving || !trustedInput.trim()}>
+              {trustedSaving ? <><span className="adm-spinner" /> Saving...</> : 'Add trusted'}
+            </button>
+          </form>
+
+          {trustedError && <div className="adm-alert adm-alert--error adm-trusted-alert">{trustedError}</div>}
+
+          {trustedSenders.length === 0 ? (
+            <div className="adm-empty">No trusted WhatsApp senders yet.</div>
+          ) : (
+            <ul className="adm-trusted-list">
+              {trustedSenders.map(sender => (
+                <li key={`${sender.source}:${sender.number}`} className="adm-trusted-row">
+                  <div className="adm-trusted-info">
+                    <span className="adm-trusted-number">+{sender.number}</span>
+                    <span className="adm-trusted-source">
+                      {sender.source === 'bootstrap' ? 'Bootstrap sender' : 'Dashboard sender'}
+                    </span>
+                  </div>
+                  {sender.removable ? (
+                    <button
+                      className="adm-delete-btn"
+                      title="Remove trusted sender"
+                      onClick={() => removeTrustedSender(sender.number)}
+                      disabled={trustedSaving}
+                    >
+                      ×
+                    </button>
+                  ) : (
+                    <span className="adm-trusted-lock">Locked</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {/* ── SECTION D ── */}
         <section className="adm-card">
           <div className="adm-section-header adm-section-header--manage">
-            <h2 className="adm-section-title">C. Manage Events</h2>
+            <h2 className="adm-section-title">D. Manage Events</h2>
             <div className="adm-month-nav">
               <button className="adm-month-btn" onClick={prevMonth} aria-label="Previous month" disabled={!prevEnabled}>
                 &#8249;
@@ -791,4 +918,3 @@ export default function Admin() {
     </div>
   );
 }
-
