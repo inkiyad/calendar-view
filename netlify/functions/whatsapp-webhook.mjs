@@ -53,6 +53,11 @@ function jsonResponse(body, status = 200) {
   });
 }
 
+function getWhatsAppAuthHeader() {
+  const token = WHATSAPP_ACCESS_TOKEN.replace(/^Bearer\s+/i, '').trim();
+  return `Bearer ${token}`;
+}
+
 function isValidSignature(rawBody, signatureHeader) {
   if (!APP_SECRET) return true;
   if (!signatureHeader) return false;
@@ -195,11 +200,12 @@ async function fetchWhatsAppMedia(mediaId) {
 
   const metadataUrl = `https://graph.facebook.com/${GRAPH_API_VERSION}/${mediaId}`;
   const metadataResponse = await fetch(metadataUrl, {
-    headers: { Authorization: `Bearer ${WHATSAPP_ACCESS_TOKEN}` },
+    headers: { Authorization: getWhatsAppAuthHeader() },
   });
 
   if (!metadataResponse.ok) {
-    throw new Error(`WhatsApp media metadata fetch failed: ${metadataResponse.status}`);
+    const errorBody = await metadataResponse.text();
+    throw new Error(`WhatsApp media metadata fetch failed: ${metadataResponse.status} ${errorBody}`);
   }
 
   const metadata = await metadataResponse.json();
@@ -208,11 +214,12 @@ async function fetchWhatsAppMedia(mediaId) {
   }
 
   const mediaResponse = await fetch(metadata.url, {
-    headers: { Authorization: `Bearer ${WHATSAPP_ACCESS_TOKEN}` },
+    headers: { Authorization: getWhatsAppAuthHeader() },
   });
 
   if (!mediaResponse.ok) {
-    throw new Error(`WhatsApp media download failed: ${mediaResponse.status}`);
+    const errorBody = await mediaResponse.text();
+    throw new Error(`WhatsApp media download failed: ${mediaResponse.status} ${errorBody}`);
   }
 
   const arrayBuffer = await mediaResponse.arrayBuffer();
@@ -370,7 +377,7 @@ async function sendWhatsAppText({ phoneNumberId, to, body }) {
       {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
+          Authorization: getWhatsAppAuthHeader(),
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
