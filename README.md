@@ -47,6 +47,14 @@ EVENT_TAGS=lecture,youth,sisters,brothers,fundraiser,interfaith,quran,community,
 # Admin Configuration
 ADMIN_PASSWORD=your-secure-password-here
 REACT_APP_ADMIN_PASSWORD=your-secure-password-here
+
+# WhatsApp Webhook (official Business Platform intake)
+WHATSAPP_VERIFY_TOKEN=your-verify-token
+WHATSAPP_APP_SECRET=your-app-secret
+WHATSAPP_ACCESS_TOKEN=your-system-user-or-cloud-api-token
+WHATSAPP_GRAPH_API_VERSION=v20.0
+WHATSAPP_SEND_CONFIRMATIONS=false
+WHATSAPP_ALLOWED_SENDERS=17185551234,13475551234
 ```
 
 **Note:** The `.env` file is gitignored and will not be committed to your repository.
@@ -77,6 +85,40 @@ Netlify will:
 - **`cron-poller`** — runs every hour, fetches Instagram posts, calls extract-event
 - **`extract-event`** — sends post to GPT-4o, parses JSON, upserts to Supabase
 - **`delete-event`** — password-protected endpoint for deleting events
+- **`whatsapp-webhook`** — receives direct WhatsApp Business Platform messages, downloads forwarded flyer images, extracts event details, uploads the flyer to Supabase Storage, and inserts the event
+- **`trusted-senders`** — admin-only endpoint for adding/removing WhatsApp numbers allowed to submit events
+
+## WhatsApp Business Platform Intake
+
+Configure the Meta webhook callback URL to:
+
+```text
+https://your-netlify-site.netlify.app/.netlify/functions/whatsapp-webhook
+```
+
+Subscribe the app to WhatsApp `messages` webhooks. When an approved sender forwards an event flyer or sends event details directly to the MAS Queens WhatsApp Business number, the webhook:
+
+1. Verifies the Meta webhook token/signature.
+2. Checks the sender against `WHATSAPP_ALLOWED_SENDERS`.
+3. Downloads image media from the WhatsApp Cloud API.
+4. Sends the flyer and caption/text to OpenAI for event extraction.
+5. Uploads the flyer image to the `event-images` Supabase Storage bucket.
+6. Inserts the event into the `events` table.
+7. Stores the WhatsApp message ID in `processing_state` to avoid duplicate inserts on Meta retries.
+
+Set `WHATSAPP_SEND_CONFIRMATIONS=true` if the webhook should send a short WhatsApp confirmation back to the sender after an event is added or ignored.
+
+`WHATSAPP_ALLOWED_SENDERS` is an optional bootstrap allowlist. Use comma-separated phone numbers in international format without `+`, for example `17185551234,13475551234`.
+
+The preferred day-to-day flow is to open `/admin`, log in, and use **WhatsApp Trusted Senders** to add the first trusted number and manage the list without code or redeploys. Dashboard-managed numbers are stored in Supabase `processing_state` under `whatsapp_trusted_senders`.
+
+Trusted senders can add another trusted sender by sending a direct WhatsApp message to the business number:
+
+```text
+trust +17185551234
+```
+
+Numbers in `WHATSAPP_ALLOWED_SENDERS` remain locked bootstrap senders and cannot be removed through the dashboard or WhatsApp commands.
 
 ## Admin Interface
 

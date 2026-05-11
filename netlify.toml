@@ -15,6 +15,7 @@
 [functions]
   directory    = "netlify/functions"
   node_bundler = "esbuild"
+  included_files = ["prompts/whatsapp-event-extraction.txt"]
 
 [functions."cron-poller"]
   schedule = "0 * * * *"
