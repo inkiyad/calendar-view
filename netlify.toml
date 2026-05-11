@@ -20,6 +20,11 @@
 [functions."cron-poller"]
   schedule = "0 * * * *"
 
+[[redirects]]
+  from   = "/.netlify/functions/*"
+  to     = "/.netlify/functions/:splat"
+  status = 200
+
 # SPA fallback — all routes serve index.html
 [[redirects]]
   from   = "/*"
